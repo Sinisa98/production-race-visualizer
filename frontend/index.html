@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎬 Production Racing Visualizer</title>
+    <title>Production Race — Visualizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -12,223 +14,260 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f0f1a;
             min-height: 100vh;
-            padding: 20px;
+            color: #e0e0e0;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1500px;
             margin: 0 auto;
+            padding: 20px 24px;
         }
 
-        header {
-            text-align: center;
-            color: white;
-            margin-bottom: 40px;
-        }
-
-        header h1 {
-            font-size: 48px;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        header p {
-            font-size: 18px;
-            opacity: 0.9;
-        }
-
-        .filters-box {
-            background-color: rgba(255, 255, 255, 0.95);
-            padding: 30px;
-            border-radius: 12px;
-            margin-bottom: 30px;
+        /* ---- Top bar: title + filters inline ---- */
+        .top-bar {
             display: flex;
+            align-items: center;
+            justify-content: space-between;
             gap: 20px;
+            margin-bottom: 16px;
             flex-wrap: wrap;
-            align-items: flex-end;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
 
-        .filter-group {
+        .brand {
             display: flex;
-            flex-direction: column;
-            gap: 8px;
-            min-width: 250px;
+            align-items: center;
+            gap: 12px;
         }
 
-        .filter-group label {
+        .brand-icon {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .brand h1 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -0.3px;
+        }
+
+        .brand h1 span {
+            color: #667eea;
+        }
+
+        .filters {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .filters label {
+            font-size: 12px;
             font-weight: 600;
-            color: #333;
-            font-size: 14px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.8px;
+            color: #888;
         }
 
-        .filter-group select {
-            padding: 12px 15px;
-            font-size: 16px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background-color: white;
+        .filters select {
+            padding: 8px 14px;
+            font-size: 14px;
             font-family: inherit;
+            font-weight: 500;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+            -webkit-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 32px;
+            min-width: 180px;
         }
 
-        .filter-group select:hover:not(:disabled) {
-            border-color: #667eea;
-            box-shadow: 0 0 8px rgba(102, 126, 234, 0.1);
+        .filters select:hover:not(:disabled) {
+            border-color: rgba(102, 126, 234, 0.5);
+            background: rgba(255,255,255,0.1);
         }
 
-        .filter-group select:focus:not(:disabled) {
+        .filters select:focus:not(:disabled) {
             outline: none;
             border-color: #667eea;
-            box-shadow: 0 0 12px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
         }
 
-        .filter-group select:disabled {
-            opacity: 0.5;
+        .filters select:disabled {
+            opacity: 0.35;
             cursor: not-allowed;
-            background-color: #f5f5f5;
+        }
+
+        .filters select option {
+            background: #1a1a2e;
+            color: #fff;
         }
 
         .year-info {
-            padding: 12px 15px;
-            background-color: #f0f0f0;
-            border-radius: 6px;
-            font-size: 14px;
+            font-size: 12px;
             color: #666;
             font-weight: 500;
             white-space: nowrap;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 6px;
         }
 
+        /* ---- Error ---- */
         .error-message {
-            background-color: #ff6b6b;
-            color: white;
-            padding: 20px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            font-size: 16px;
+            background: rgba(255, 72, 72, 0.15);
+            border: 1px solid rgba(255, 72, 72, 0.3);
+            color: #ff6b6b;
+            padding: 14px 20px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            font-weight: 500;
         }
 
+        /* ---- Info / empty state ---- */
         .info-message {
-            background-color: rgba(255, 255, 255, 0.9);
-            color: #667eea;
-            padding: 40px;
+            background: rgba(255,255,255,0.03);
+            border: 1px dashed rgba(255,255,255,0.1);
+            color: #555;
+            padding: 60px 40px;
             text-align: center;
-            border-radius: 8px;
-            font-size: 18px;
-        }
-
-        .chart-box {
-            background-color: rgba(255, 255, 255, 0.95);
-            padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
-
-        .controls {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 25px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        button {
-            padding: 12px 24px;
             font-size: 16px;
-            font-weight: 600;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: inherit;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-weight: 500;
         }
 
-        .btn-play {
-            background-color: #667eea;
-            color: white;
+        /* ---- Chart wrapper ---- */
+        .chart-box {
+            background: transparent;
+            padding: 0;
+            border-radius: 0;
         }
 
-        .btn-play:hover:not(:disabled) {
-            background-color: #5568d3;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-            transform: translateY(-2px);
-        }
-
-        .btn-stop {
-            background-color: #d9534f;
-            color: white;
-        }
-
-        .btn-stop:hover:not(:disabled) {
-            background-color: #c9302c;
-            box-shadow: 0 4px 12px rgba(217, 83, 79, 0.4);
-            transform: translateY(-2px);
-        }
-
-        .btn-reset {
-            background-color: #f0ad4e;
-            color: white;
-        }
-
-        .btn-reset:hover:not(:disabled) {
-            background-color: #e59c1e;
-            box-shadow: 0 4px 12px rgba(240, 173, 78, 0.4);
-            transform: translateY(-2px);
-        }
-
-        .btn-export {
-            background-color: #5cb85c;
-            color: white;
-        }
-
-        .btn-export:hover:not(:disabled) {
-            background-color: #47a447;
-            box-shadow: 0 4px 12px rgba(92, 184, 92, 0.4);
-            transform: translateY(-2px);
-        }
-
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-
-        .progress-info {
-            padding: 12px 20px;
-            background-color: #f0f0f0;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: 600;
-            color: #333;
-            white-space: nowrap;
-        }
-
+        /* ---- Canvas ---- */
         canvas {
             width: 100%;
             height: auto;
             max-height: 80vh;
             object-fit: contain;
             display: block;
-            margin: 0 auto 25px;
-            background: white;
+            margin: 0 auto;
+            border-radius: 12px;
+            background: #1a1a2e;
+        }
+
+        /* ---- Controls bar (media player style) ---- */
+        .controls-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            margin-top: 10px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .controls-bar button {
+            padding: 0;
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .btn-play {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-play:hover:not(:disabled) {
+            background: #5568d3;
+            box-shadow: 0 0 16px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-stop {
+            background: rgba(255,255,255,0.08);
+            color: #ccc;
+        }
+
+        .btn-stop:hover:not(:disabled) {
+            background: rgba(255,255,255,0.14);
+            color: #fff;
+        }
+
+        .btn-reset {
+            background: rgba(255,255,255,0.08);
+            color: #ccc;
+        }
+
+        .btn-reset:hover:not(:disabled) {
+            background: rgba(255,255,255,0.14);
+            color: #fff;
+        }
+
+        .btn-export {
+            background: rgba(255,255,255,0.08);
+            color: #ccc;
+            width: auto;
+            padding: 0 16px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-left: auto;
+        }
+
+        .btn-export:hover:not(:disabled) {
+            background: rgba(92, 184, 92, 0.2);
+            color: #5cb85c;
+        }
+
+        button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* ---- Progress ---- */
+        .progress-section {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
         }
 
         .progress-bar-container {
-            width: 100%;
-            height: 8px;
-            background-color: #e9ecef;
-            border-radius: 4px;
+            flex: 1;
+            height: 4px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 2px;
             overflow: hidden;
         }
 
@@ -237,20 +276,58 @@
             background: linear-gradient(to right, #667eea, #764ba2);
             transition: width 0.1s linear;
             width: 0%;
+            border-radius: 2px;
         }
 
+        .progress-info {
+            font-size: 12px;
+            font-weight: 600;
+            color: #777;
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ---- Continent legend ---- */
+        .legend {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            padding: 10px 0 0;
+            justify-content: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* ---- Missing flags ---- */
         .missing-flags {
-            background-color: rgba(255, 255, 255, 0.9);
-            padding: 20px 30px;
-            border-radius: 12px;
-            margin-top: 20px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            padding: 14px 20px;
+            border-radius: 10px;
+            margin-top: 12px;
             color: #555;
-            font-size: 14px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            font-size: 12px;
         }
 
         .missing-flags strong {
-            color: #333;
+            color: #888;
+            font-weight: 600;
         }
 
         .hidden {
@@ -258,83 +335,80 @@
         }
 
         @media (max-width: 768px) {
-            header h1 {
-                font-size: 32px;
-            }
-
-            header p {
-                font-size: 16px;
-            }
-
-            .filters-box {
+            .top-bar {
                 flex-direction: column;
-                gap: 15px;
+                align-items: flex-start;
             }
 
-            .filter-group {
-                width: 100%;
-                min-width: unset;
-            }
-
-            .year-info {
+            .filters {
                 width: 100%;
             }
 
-            button {
-                padding: 10px 16px;
-                font-size: 14px;
+            .filters select {
+                flex: 1;
+                min-width: 0;
             }
 
-            .progress-info {
-                font-size: 14px;
-                padding: 10px 15px;
+            .controls-bar {
+                flex-wrap: wrap;
+            }
+
+            .btn-export {
+                margin-left: 0;
+                width: 100%;
+                height: 40px;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>🎬 Production Racing Visualizer</h1>
-            <p>Watch countries race for highest production year by year</p>
-        </header>
-
-        <div class="filters-box">
-            <div class="filter-group">
-                <label for="product-select">Product:</label>
+        <div class="top-bar">
+            <div class="brand">
+                <div class="brand-icon">&#9654;</div>
+                <h1>Production <span>Race</span></h1>
+            </div>
+            <div class="filters">
+                <label for="product-select">Product</label>
                 <select id="product-select">
-                    <option value="">-- Loading products --</option>
+                    <option value="">Loading...</option>
                 </select>
-            </div>
-
-            <div class="filter-group">
-                <label for="year-select">Start Year:</label>
+                <label for="year-select">From</label>
                 <select id="year-select" disabled>
-                    <option value="">-- Select Year --</option>
+                    <option value="">Year</option>
                 </select>
+                <div id="year-info" class="year-info" style="display: none;"></div>
             </div>
-
-            <div id="year-info" class="year-info" style="display: none;"></div>
         </div>
 
         <div id="error-box" class="error-message hidden"></div>
 
         <div id="chart-container" class="chart-box hidden">
-            <div class="controls">
-                <button id="play-btn" class="btn-play">▶ Play</button>
-                <button id="stop-btn" class="btn-stop" disabled>⏸ Stop</button>
-                <button id="reset-btn" class="btn-reset">⏹ Reset</button>
-                <button id="export-btn" class="btn-export">💾 Export Video</button>
-                <div class="progress-info" id="progress-info">Year 0 / 0</div>
-            </div>
             <canvas id="racing-canvas"></canvas>
-            <div class="progress-bar-container">
-                <div class="progress-bar" id="progress-bar"></div>
+            <div class="controls-bar">
+                <button id="play-btn" class="btn-play" title="Play">&#9654;</button>
+                <button id="stop-btn" class="btn-stop" disabled title="Pause">&#10074;&#10074;</button>
+                <button id="reset-btn" class="btn-reset" title="Reset">&#9632;</button>
+                <div class="progress-section">
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progress-bar"></div>
+                    </div>
+                    <div class="progress-info" id="progress-info">0 / 0</div>
+                </div>
+                <button id="export-btn" class="btn-export" title="Export Video">Export</button>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-dot" style="background:#4a90d9"></div>Europe</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#e74c3c"></div>Asia</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#f39c12"></div>Africa</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#2ecc71"></div>N. America</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#9b59b6"></div>S. America</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#1abc9c"></div>Oceania</div>
             </div>
         </div>
 
         <div id="info-box" class="info-message">
-            Select a product and start year above to see the race
+            Select a product and start year to begin
         </div>
 
         <div id="missing-flags" class="missing-flags hidden"></div>
@@ -873,7 +947,7 @@
 
         // Update progress info
         function updateProgressInfo() {
-            progressInfo.textContent = `Year ${appState.currentYear} / ${appState.endYear}`;
+            progressInfo.textContent = `${appState.currentYear} / ${appState.endYear}`;
         }
 
         // Update progress bar
