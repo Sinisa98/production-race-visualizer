@@ -5,17 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Production Race — Visualizer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #0f0f1a;
+            background: #0a0a14;
             min-height: 100vh;
             color: #e0e0e0;
         }
@@ -26,7 +22,7 @@
             padding: 20px 24px;
         }
 
-        /* ---- Top bar: title + filters inline ---- */
+        /* ---- Top bar ---- */
         .top-bar {
             display: flex;
             align-items: center;
@@ -60,9 +56,7 @@
             letter-spacing: -0.3px;
         }
 
-        .brand h1 span {
-            color: #667eea;
-        }
+        .brand h1 span { color: #667eea; }
 
         .filters {
             display: flex;
@@ -110,15 +104,8 @@
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
         }
 
-        .filters select:disabled {
-            opacity: 0.35;
-            cursor: not-allowed;
-        }
-
-        .filters select option {
-            background: #1a1a2e;
-            color: #fff;
-        }
+        .filters select:disabled { opacity: 0.35; cursor: not-allowed; }
+        .filters select option { background: #1a1a2e; color: #fff; }
 
         .year-info {
             font-size: 12px;
@@ -130,7 +117,6 @@
             border-radius: 6px;
         }
 
-        /* ---- Error ---- */
         .error-message {
             background: rgba(255, 72, 72, 0.15);
             border: 1px solid rgba(255, 72, 72, 0.3);
@@ -142,7 +128,6 @@
             font-weight: 500;
         }
 
-        /* ---- Info / empty state ---- */
         .info-message {
             background: rgba(255,255,255,0.03);
             border: 1px dashed rgba(255,255,255,0.1);
@@ -154,14 +139,8 @@
             font-weight: 500;
         }
 
-        /* ---- Chart wrapper ---- */
-        .chart-box {
-            background: transparent;
-            padding: 0;
-            border-radius: 0;
-        }
+        .chart-box { background: transparent; padding: 0; border-radius: 0; }
 
-        /* ---- Canvas ---- */
         canvas {
             width: 100%;
             height: auto;
@@ -170,10 +149,10 @@
             display: block;
             margin: 0 auto;
             border-radius: 12px;
-            background: #1a1a2e;
+            background: #0f0f1e;
         }
 
-        /* ---- Controls bar (media player style) ---- */
+        /* ---- Controls bar ---- */
         .controls-bar {
             display: flex;
             align-items: center;
@@ -202,35 +181,12 @@
             flex-shrink: 0;
         }
 
-        .btn-play {
-            background: #667eea;
-            color: white;
-        }
-
-        .btn-play:hover:not(:disabled) {
-            background: #5568d3;
-            box-shadow: 0 0 16px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-stop {
-            background: rgba(255,255,255,0.08);
-            color: #ccc;
-        }
-
-        .btn-stop:hover:not(:disabled) {
-            background: rgba(255,255,255,0.14);
-            color: #fff;
-        }
-
-        .btn-reset {
-            background: rgba(255,255,255,0.08);
-            color: #ccc;
-        }
-
-        .btn-reset:hover:not(:disabled) {
-            background: rgba(255,255,255,0.14);
-            color: #fff;
-        }
+        .btn-play { background: #667eea; color: white; }
+        .btn-play:hover:not(:disabled) { background: #5568d3; box-shadow: 0 0 16px rgba(102, 126, 234, 0.4); }
+        .btn-stop { background: rgba(255,255,255,0.08); color: #ccc; }
+        .btn-stop:hover:not(:disabled) { background: rgba(255,255,255,0.14); color: #fff; }
+        .btn-reset { background: rgba(255,255,255,0.08); color: #ccc; }
+        .btn-reset:hover:not(:disabled) { background: rgba(255,255,255,0.14); color: #fff; }
 
         .btn-export {
             background: rgba(255,255,255,0.08);
@@ -244,17 +200,9 @@
             margin-left: auto;
         }
 
-        .btn-export:hover:not(:disabled) {
-            background: rgba(92, 184, 92, 0.2);
-            color: #5cb85c;
-        }
+        .btn-export:hover:not(:disabled) { background: rgba(92, 184, 92, 0.2); color: #5cb85c; }
+        button:disabled { opacity: 0.3; cursor: not-allowed; }
 
-        button:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-
-        /* ---- Progress ---- */
         .progress-section {
             flex: 1;
             display: flex;
@@ -287,7 +235,6 @@
             font-variant-numeric: tabular-nums;
         }
 
-        /* ---- Continent legend ---- */
         .legend {
             display: flex;
             gap: 16px;
@@ -307,14 +254,8 @@
             letter-spacing: 0.5px;
         }
 
-        .legend-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
-        /* ---- Missing flags ---- */
         .missing-flags {
             background: rgba(255,255,255,0.03);
             border: 1px solid rgba(255,255,255,0.06);
@@ -325,39 +266,15 @@
             font-size: 12px;
         }
 
-        .missing-flags strong {
-            color: #888;
-            font-weight: 600;
-        }
-
-        .hidden {
-            display: none;
-        }
+        .missing-flags strong { color: #888; font-weight: 600; }
+        .hidden { display: none; }
 
         @media (max-width: 768px) {
-            .top-bar {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .filters {
-                width: 100%;
-            }
-
-            .filters select {
-                flex: 1;
-                min-width: 0;
-            }
-
-            .controls-bar {
-                flex-wrap: wrap;
-            }
-
-            .btn-export {
-                margin-left: 0;
-                width: 100%;
-                height: 40px;
-            }
+            .top-bar { flex-direction: column; align-items: flex-start; }
+            .filters { width: 100%; }
+            .filters select { flex: 1; min-width: 0; }
+            .controls-bar { flex-wrap: wrap; }
+            .btn-export { margin-left: 0; width: 100%; height: 40px; }
         }
     </style>
 </head>
@@ -415,6 +332,43 @@
     </div>
 
     <script>
+        // ================================================================
+        // CONFIGURATION — Template system for reusable series
+        // ================================================================
+        const CONFIG = {
+            // Timing (ms)
+            hookDuration: 1200,      // Title card display
+            setupDuration: 1000,     // Setup/tease phase
+            endHoldDuration: 2500,   // Hold final frame
+            yearDurationMs: 400,     // Speed per year during race
+
+            // Visual
+            canvasWidth: 1080,       // Instagram reel = 1080x1920
+            canvasHeight: 1920,
+            bgColor: '#0f0f1e',
+            accentColor: '#667eea',
+
+            // Text templates (auto-filled from product name)
+            hookTemplate: 'Who Produces the Most\n{product}?',
+            subtitleTemplate: 'Top 10 Countries · {startYear}–{endYear}',
+            ctaText: 'Follow for more data races',
+            ctaSubtext: 'Which product should we race next?',
+
+            // Emphasis
+            top1Scale: 1.3,       // Circle scale for #1
+            top3Scale: 1.1,       // Circle scale for #2-3
+            top1Glow: true,
+            trailOpacityTop3: 0.35,
+            trailOpacityOther: 0.08,
+
+            // Narrative overlay rules
+            narrativeEnabled: true,
+            narrativeDurationMs: 1800,
+        };
+
+        // ================================================================
+        // STATE
+        // ================================================================
         const API_URL = window.location.origin;
         let appState = {
             products: [],
@@ -427,12 +381,10 @@
             currentYear: 0,
             startYear: 0,
             endYear: 0,
-            isExporting: false
+            isExporting: false,
         };
 
-        let animationFrameId = null;
-
-        // DOM Elements
+        // DOM
         const productSelect = document.getElementById('product-select');
         const yearSelect = document.getElementById('year-select');
         const yearInfo = document.getElementById('year-info');
@@ -447,32 +399,25 @@
         const progressInfo = document.getElementById('progress-info');
         const progressBar = document.getElementById('progress-bar');
 
-        // Flag image cache
+        // ================================================================
+        // FLAGS
+        // ================================================================
         const flagCache = {};
 
-        // Load a flag image from flagcdn.com, returns a promise
         function loadFlagImage(iso2) {
             if (!iso2) return Promise.resolve(null);
             const code = iso2.toLowerCase();
             if (flagCache[code]) return Promise.resolve(flagCache[code]);
             if (flagCache[code] === null) return Promise.resolve(null);
-
             return new Promise((resolve) => {
                 const img = new Image();
                 img.crossOrigin = 'anonymous';
-                img.onload = () => {
-                    flagCache[code] = img;
-                    resolve(img);
-                };
-                img.onerror = () => {
-                    flagCache[code] = null;
-                    resolve(null);
-                };
-                img.src = `https://flagcdn.com/w80/${code}.png`;
+                img.onload = () => { flagCache[code] = img; resolve(img); };
+                img.onerror = () => { flagCache[code] = null; resolve(null); };
+                img.src = `https://flagcdn.com/w160/${code}.png`;
             });
         }
 
-        // Preload flags for a set of data entries
         async function preloadFlags(data) {
             const codes = new Set();
             for (const year of Object.values(data)) {
@@ -483,134 +428,9 @@
             await Promise.all([...codes].map(code => loadFlagImage(code)));
         }
 
-        // Initialize canvas size
-        function initCanvas() {
-            canvas.width = 1920;
-            canvas.height = 1080;
-        }
-
-        initCanvas();
-
-        // Fetch products on load
-        async function loadProducts() {
-            try {
-                errorBox.classList.add('hidden');
-                const response = await fetch(`${API_URL}/api/products`);
-                if (!response.ok) throw new Error('Failed to load products');
-                
-                appState.products = await response.json();
-                
-                // Clear and populate select
-                productSelect.innerHTML = '<option value="">-- Select Product --</option>';
-                appState.products.forEach(product => {
-                    const option = document.createElement('option');
-                    option.value = product;
-                    option.textContent = product;
-                    productSelect.appendChild(option);
-                });
-
-                if (appState.products.length > 0) {
-                    appState.selectedProduct = appState.products[0];
-                    productSelect.value = appState.selectedProduct;
-                    loadYearRange(appState.selectedProduct);
-                }
-            } catch (error) {
-                console.error('Error loading products:', error);
-                showError('Failed to load products: ' + error.message);
-            }
-        }
-
-        // Load year range for selected product
-        async function loadYearRange(product) {
-            if (!product) return;
-            
-            try {
-                errorBox.classList.add('hidden');
-                const response = await fetch(`${API_URL}/api/year-range/${encodeURIComponent(product)}`);
-                if (!response.ok) throw new Error('Failed to load year range');
-                
-                const result = await response.json();
-                appState.yearRange = {
-                    min: result.minYear,
-                    max: result.maxYear
-                };
-
-                // Build year options
-                yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
-                for (let year = result.minYear; year <= result.maxYear; year++) {
-                    const option = document.createElement('option');
-                    option.value = year;
-                    option.textContent = year;
-                    yearSelect.appendChild(option);
-                }
-
-                yearSelect.disabled = false;
-                
-                if (result.minYear) {
-                    appState.selectedStartYear = result.minYear.toString();
-                    yearSelect.value = appState.selectedStartYear;
-                    updateYearInfo();
-                    loadData();
-                }
-            } catch (error) {
-                console.error('Error loading year range:', error);
-                showError('Failed to load year range: ' + error.message);
-            }
-        }
-
-        // Update year info display
-        function updateYearInfo() {
-            if (appState.yearRange.min && appState.yearRange.max && appState.selectedStartYear) {
-                const yearCount = appState.yearRange.max - parseInt(appState.selectedStartYear) + 1;
-                yearInfo.textContent = `Available: ${appState.yearRange.min} - ${appState.yearRange.max} (${yearCount} years)`;
-                yearInfo.style.display = 'block';
-            }
-        }
-
-        // Load data for selected product and year range
-        async function loadData() {
-            if (!appState.selectedProduct || !appState.selectedStartYear) return;
-
-            try {
-                errorBox.classList.add('hidden');
-                const response = await fetch(
-                    `${API_URL}/api/data?product=${encodeURIComponent(appState.selectedProduct)}&startYear=${appState.selectedStartYear}&endYear=${appState.yearRange.max}`
-                );
-                if (!response.ok) throw new Error('Failed to load data');
-                
-                appState.data = await response.json();
-                appState.startYear = parseInt(appState.selectedStartYear);
-                appState.endYear = appState.yearRange.max;
-                appState.currentYear = appState.startYear;
-                appState.allYears = Object.keys(appState.data.data)
-                    .map(y => parseInt(y))
-                    .sort((a, b) => a - b);
-
-                // Preload flag images
-                await preloadFlags(appState.data.data);
-
-                // Compute rank history for the racing line chart
-                computeRankHistory();
-                animState.yearIndex = 0;
-
-                // Show chart
-                chartContainer.classList.remove('hidden');
-                infoBox.classList.add('hidden');
-
-                // Draw initial frame
-                drawChart(0);
-                updateProgressInfo();
-            } catch (error) {
-                console.error('Error loading data:', error);
-                showError('Failed to load data: ' + error.message);
-            }
-        }
-
-        // ============================================================
-        // RACING LINE CHART
-        // ============================================================
-
-        // ISO2 to continent mapping
+        // ================================================================
+        // ISO2 → CONTINENT
+        // ================================================================
         const iso2ToContinent = {
             AF:'AS',AL:'EU',DZ:'AF',AO:'AF',AR:'SA',AM:'AS',AU:'OC',AT:'EU',AZ:'AS',
             BS:'NA',BH:'AS',BD:'AS',BB:'NA',BY:'EU',BE:'EU',BZ:'NA',BJ:'AF',BT:'AS',
@@ -636,30 +456,39 @@
             TW:'AS',HK:'AS',MO:'AS',XK:'EU',
         };
 
-        // Continent colors — distinct, muted tones
         const continentColors = {
-            'EU': '#4a90d9',  // Europe — blue
-            'AS': '#e74c3c',  // Asia — red
-            'AF': '#f39c12',  // Africa — amber
-            'NA': '#2ecc71',  // North America — green
-            'SA': '#9b59b6',  // South America — purple
-            'OC': '#1abc9c',  // Oceania — teal
+            'EU': '#4a90d9',
+            'AS': '#e74c3c',
+            'AF': '#f39c12',
+            'NA': '#2ecc71',
+            'SA': '#9b59b6',
+            'OC': '#1abc9c',
         };
 
         function getCountryColor(area, iso2) {
             if (iso2) {
                 const continent = iso2ToContinent[iso2.toUpperCase()];
-                if (continent && continentColors[continent]) {
-                    return continentColors[continent];
-                }
+                if (continent && continentColors[continent]) return continentColors[continent];
             }
-            return '#a9a9a9'; // fallback grey
+            return '#a9a9a9';
         }
 
-        // Pre-compute rank history per year: { year: [{ area, rank, value, iso2 }] }
+        // ================================================================
+        // CANVAS SETUP (Instagram Reel: 1080x1920 vertical)
+        // ================================================================
+        function initCanvas() {
+            canvas.width = CONFIG.canvasWidth;
+            canvas.height = CONFIG.canvasHeight;
+        }
+        initCanvas();
+
+        // ================================================================
+        // DATA PROCESSING
+        // ================================================================
         let rankByYear = {};
         let allCountriesInRace = [];
         let missingFlagCountries = new Set();
+        let narrativeEvents = []; // Auto-generated story beats
 
         function computeRankHistory() {
             rankByYear = {};
@@ -670,31 +499,94 @@
             for (const year of appState.allYears) {
                 const yearData = data[year];
                 if (!yearData) continue;
-
                 const sorted = [...yearData].sort((a, b) => b.value - a.value).slice(0, 10);
                 rankByYear[year] = sorted.map((item, index) => {
                     countriesSeen.add(item.area);
                     const iso2 = item.iso2 || null;
-                    // Track missing flags
                     if (!iso2 || !flagCache[iso2.toLowerCase()]) {
                         missingFlagCountries.add(item.area);
                     }
-                    return {
-                        area: item.area,
-                        rank: index,
-                        value: item.value,
-                        iso2: iso2
-                    };
+                    return { area: item.area, rank: index, value: item.value, iso2 };
                 });
             }
 
             allCountriesInRace = [...countriesSeen];
             updateMissingFlagsDisplay();
+            generateNarrativeEvents();
         }
 
-        // Show missing flags below the video
-        const missingFlagsDiv = document.getElementById('missing-flags');
+        // ================================================================
+        // NARRATIVE ENGINE — Auto-detect story moments
+        // ================================================================
+        function generateNarrativeEvents() {
+            narrativeEvents = [];
+            const years = appState.allYears;
+            if (years.length < 3) return;
 
+            let prevLeader = null;
+
+            for (let i = 0; i < years.length; i++) {
+                const year = years[i];
+                const entries = rankByYear[year];
+                if (!entries || entries.length === 0) continue;
+
+                const leader = entries[0].area;
+
+                // Leadership change
+                if (prevLeader && leader !== prevLeader && i > 0) {
+                    narrativeEvents.push({
+                        yearIndex: i,
+                        text: `${leader} takes the lead`,
+                        type: 'lead_change',
+                    });
+                }
+
+                // First year — who dominates
+                if (i === 0) {
+                    narrativeEvents.push({
+                        yearIndex: 0,
+                        text: `${leader} leads in ${year}`,
+                        type: 'intro',
+                    });
+                }
+
+                // Detect big surges (country jumps 3+ ranks)
+                if (i > 0) {
+                    const prevEntries = rankByYear[years[i - 1]];
+                    if (prevEntries) {
+                        const prevRankMap = {};
+                        for (const e of prevEntries) prevRankMap[e.area] = e.rank;
+
+                        for (const entry of entries) {
+                            const prevRank = prevRankMap[entry.area];
+                            if (prevRank !== undefined && prevRank - entry.rank >= 3) {
+                                narrativeEvents.push({
+                                    yearIndex: i,
+                                    text: `${entry.area} surges!`,
+                                    type: 'surge',
+                                });
+                            }
+                        }
+                    }
+                }
+
+                prevLeader = leader;
+            }
+
+            // Deduplicate — max 1 event per 3 year indices
+            const filtered = [];
+            let lastEventIdx = -10;
+            for (const event of narrativeEvents) {
+                if (event.yearIndex - lastEventIdx >= 3 || event.type === 'intro') {
+                    filtered.push(event);
+                    lastEventIdx = event.yearIndex;
+                }
+            }
+            narrativeEvents = filtered;
+        }
+
+        // Missing flags display
+        const missingFlagsDiv = document.getElementById('missing-flags');
         function updateMissingFlagsDisplay() {
             if (missingFlagCountries.size === 0) {
                 missingFlagsDiv.classList.add('hidden');
@@ -705,111 +597,291 @@
             missingFlagsDiv.innerHTML = `<strong>Countries without flags (${missingFlagCountries.size}):</strong> ${names}`;
         }
 
-        // Chart layout constants
-        const MARGIN = { top: 100, right: 160, bottom: 60, left: 80 };
-        const CIRCLE_RADIUS = 32;
-        const YEAR_DURATION_MS = 500; // total time per year
+        // ================================================================
+        // LAYOUT CONSTANTS (vertical reel layout)
+        // ================================================================
+        const MARGIN = { top: 320, right: 60, bottom: 200, left: 60 };
+        const BASE_CIRCLE_RADIUS = 36;
 
-        // Animation state — continuous timeline
+        // ================================================================
+        // ANIMATION PHASES
+        // ================================================================
+        // Phase 0: HOOK — title card (0 to hookDuration)
+        // Phase 1: SETUP — brief tease, first frame fades in (hookDuration to hookDuration+setupDuration)
+        // Phase 2: RACE — main animation (continuous year progression)
+        // Phase 3: END — hold final frame + CTA (after race completes)
+
         let animState = {
             rafId: null,
-            startTimestamp: 0,    // when the animation started
-            pausedProgress: 0,    // fractional year index when paused (e.g., 3.5 = halfway between year 3 and 4)
+            startTimestamp: 0,
+            pausedElapsed: 0,   // total elapsed ms when paused
+            phase: 'idle',      // idle | hook | setup | race | end
         };
 
-        // Get Y position for a rank (0-9)
+        function getTotalDuration() {
+            const raceDuration = (appState.allYears.length - 1) * CONFIG.yearDurationMs;
+            return CONFIG.hookDuration + CONFIG.setupDuration + raceDuration + CONFIG.endHoldDuration;
+        }
+
+        function getPhaseAndProgress(elapsedMs) {
+            const hookEnd = CONFIG.hookDuration;
+            const setupEnd = hookEnd + CONFIG.setupDuration;
+            const raceDuration = (appState.allYears.length - 1) * CONFIG.yearDurationMs;
+            const raceEnd = setupEnd + raceDuration;
+            const totalEnd = raceEnd + CONFIG.endHoldDuration;
+
+            if (elapsedMs < hookEnd) {
+                return { phase: 'hook', t: elapsedMs / hookEnd, yearProgress: 0 };
+            } else if (elapsedMs < setupEnd) {
+                return { phase: 'setup', t: (elapsedMs - hookEnd) / CONFIG.setupDuration, yearProgress: 0 };
+            } else if (elapsedMs < raceEnd) {
+                const raceElapsed = elapsedMs - setupEnd;
+                const yearProgress = raceElapsed / CONFIG.yearDurationMs;
+                return { phase: 'race', t: raceElapsed / raceDuration, yearProgress };
+            } else {
+                return { phase: 'end', t: Math.min((elapsedMs - raceEnd) / CONFIG.endHoldDuration, 1), yearProgress: appState.allYears.length - 1 };
+            }
+        }
+
+        // ================================================================
+        // DRAWING HELPERS
+        // ================================================================
+        const ctx = canvas.getContext('2d');
+
+        function drawBackground() {
+            // Dark gradient background
+            const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            grad.addColorStop(0, '#0f0f1e');
+            grad.addColorStop(0.5, '#141428');
+            grad.addColorStop(1, '#0f0f1e');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Rank Y position (vertical layout — ranks go top to bottom)
         function rankToY(rank) {
             const chartHeight = canvas.height - MARGIN.top - MARGIN.bottom;
             const spacing = chartHeight / 10;
             return MARGIN.top + rank * spacing + spacing / 2;
         }
 
-        // Get X position from a fractional year progress (0 to totalYears-1)
+        // X position for year progress in race phase
         function getXForProgress(progress, totalYears) {
             const frac = progress / Math.max(totalYears - 1, 1);
-            const leftEdge = MARGIN.left + CIRCLE_RADIUS + 10;
-            const rightEdge = canvas.width - MARGIN.right - CIRCLE_RADIUS - 10;
+            const leftEdge = MARGIN.left + BASE_CIRCLE_RADIUS + 10;
+            const rightEdge = canvas.width - MARGIN.right - BASE_CIRCLE_RADIUS - 10;
             return leftEdge + frac * (rightEdge - leftEdge);
         }
 
-        // Draw a circle with flag or text
-        function drawCountryCircle(ctx, x, y, country, iso2, color, alpha) {
+        // Draw country circle with emphasis based on rank
+        function drawCountryCircle(x, y, country, iso2, color, alpha, rank) {
+            ctx.save();
             ctx.globalAlpha = alpha;
+
+            let radius = BASE_CIRCLE_RADIUS;
+            if (rank === 0) radius *= CONFIG.top1Scale;
+            else if (rank < 3) radius *= CONFIG.top3Scale;
+
+            // Glow for #1
+            if (rank === 0 && CONFIG.top1Glow && alpha > 0.5) {
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 30;
+            }
+
             const flagImg = iso2 ? flagCache[iso2.toLowerCase()] : null;
 
-            // Circle background
+            // Circle
             ctx.beginPath();
-            ctx.arc(x, y, CIRCLE_RADIUS, 0, Math.PI * 2);
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
             ctx.fillStyle = color;
             ctx.fill();
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 3;
+
+            // Border — thicker for top 3
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = rank === 0 ? '#fff' : (rank < 3 ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.4)');
+            ctx.lineWidth = rank === 0 ? 4 : (rank < 3 ? 3 : 2);
             ctx.stroke();
 
+            // Flag image
             if (flagImg) {
                 ctx.save();
                 ctx.beginPath();
-                ctx.arc(x, y, CIRCLE_RADIUS - 3, 0, Math.PI * 2);
+                ctx.arc(x, y, radius - 3, 0, Math.PI * 2);
                 ctx.clip();
-                const imgSize = (CIRCLE_RADIUS - 3) * 2;
+                const imgSize = (radius - 3) * 2;
                 ctx.drawImage(flagImg, x - imgSize / 2, y - imgSize / 2, imgSize, imgSize);
                 ctx.restore();
-                ctx.globalAlpha = alpha;
             } else {
                 ctx.fillStyle = '#fff';
-                ctx.font = 'bold 11px Arial';
+                ctx.font = `bold ${rank < 3 ? 14 : 11}px Inter, Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                const label = country.length <= 12 ? country : country.substring(0, 10) + '.';
+                const label = country.length <= 10 ? country : country.substring(0, 8) + '..';
                 ctx.fillText(label, x, y);
-                ctx.textBaseline = 'alphabetic';
             }
 
-            ctx.globalAlpha = 1.0;
+            ctx.restore();
         }
 
-        // Draw frame at a given fractional progress (e.g., 5.3 = 30% between year index 5 and 6)
-        function drawRaceFrame(progress) {
-            const ctx = canvas.getContext('2d');
-            const totalYears = appState.allYears.length;
-            const maxProgress = totalYears - 1;
-            progress = Math.min(progress, maxProgress);
+        // Format value for display
+        function formatValue(v) {
+            if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+            if (v >= 1e3) return (v / 1e3).toFixed(0) + 'K';
+            return Math.round(v).toLocaleString();
+        }
 
-            const floorIdx = Math.floor(progress);
-            const ceilIdx = Math.min(floorIdx + 1, maxProgress);
-            const t = progress - floorIdx; // 0..1 fraction between two years
+        // Easing
+        function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+        function easeInOutCubic(t) { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2; }
 
-            const currentX = getXForProgress(progress, totalYears);
+        // ================================================================
+        // HOOK PHASE — Title card
+        // ================================================================
+        function drawHookPhase(t) {
+            drawBackground();
 
-            // Determine display year
-            const displayYear = appState.allYears[floorIdx];
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
 
-            // Clear
-            ctx.fillStyle = '#1a1a2e';
+            // Animated entrance
+            const fadeIn = easeOutCubic(Math.min(t * 2, 1));
+            const slideUp = easeOutCubic(Math.min(t * 1.5, 1));
+
+            ctx.globalAlpha = fadeIn;
+
+            // Accent line above title
+            const lineWidth = 80 * fadeIn;
+            ctx.fillStyle = CONFIG.accentColor;
+            ctx.fillRect(centerX - lineWidth / 2, centerY - 160, lineWidth, 4);
+
+            // Main title — multi-line
+            const hookText = CONFIG.hookTemplate.replace('{product}', appState.selectedProduct);
+            const lines = hookText.split('\n');
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // First line (question)
+            ctx.font = '600 42px Inter, Arial';
+            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+            const y1 = centerY - 60 + (1 - slideUp) * 40;
+            ctx.fillText(lines[0] || '', centerX, y1);
+
+            // Second line (product name — big, bold)
+            ctx.font = '900 72px Inter, Arial';
+            ctx.fillStyle = '#fff';
+            const y2 = centerY + 30 + (1 - slideUp) * 40;
+            ctx.fillText(lines[1] || appState.selectedProduct, centerX, y2);
+
+            // Subtitle
+            const subtitle = CONFIG.subtitleTemplate
+                .replace('{startYear}', appState.startYear)
+                .replace('{endYear}', appState.endYear);
+            ctx.font = '500 28px Inter, Arial';
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            const y3 = centerY + 110 + (1 - slideUp) * 40;
+            ctx.fillText(subtitle, centerX, y3);
+
+            // Accent line below
+            ctx.fillStyle = CONFIG.accentColor;
+            ctx.fillRect(centerX - lineWidth / 2, centerY + 160, lineWidth, 4);
+
+            ctx.globalAlpha = 1;
+        }
+
+        // ================================================================
+        // SETUP PHASE — Transition into race
+        // ================================================================
+        function drawSetupPhase(t) {
+            // Cross-fade: hook fades out, first race frame fades in
+            const fadeOut = 1 - easeInOutCubic(t);
+            const fadeIn = easeInOutCubic(t);
+
+            // Draw race frame underneath
+            ctx.globalAlpha = fadeIn;
+            drawRaceContent(0);
+
+            // Draw hook overlay fading out
+            ctx.globalAlpha = fadeOut;
+            drawHookOverlay();
+
+            ctx.globalAlpha = 1;
+        }
+
+        function drawHookOverlay() {
+            // Semi-transparent dark overlay
+            ctx.fillStyle = '#0f0f1e';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Draw title
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            const hookText = CONFIG.hookTemplate.replace('{product}', appState.selectedProduct);
+            const lines = hookText.split('\n');
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = '600 42px Inter, Arial';
+            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+            ctx.fillText(lines[0] || '', centerX, centerY - 60);
+            ctx.font = '900 72px Inter, Arial';
             ctx.fillStyle = '#fff';
-            ctx.font = 'bold 36px Arial';
+            ctx.fillText(lines[1] || appState.selectedProduct, centerX, centerY + 30);
+        }
+
+        // ================================================================
+        // RACE PHASE — Main animation
+        // ================================================================
+        function drawRaceContent(yearProgress) {
+            const totalYears = appState.allYears.length;
+            const maxProgress = totalYears - 1;
+            yearProgress = Math.max(0, Math.min(yearProgress, maxProgress));
+
+            const floorIdx = Math.floor(yearProgress);
+            const ceilIdx = Math.min(floorIdx + 1, maxProgress);
+            const t = yearProgress - floorIdx;
+
+            drawBackground();
+
+            // ---- Header: Product title + Year ----
+            const displayYear = appState.allYears[floorIdx] || appState.allYears[0] || '';
+
+            // Product name — top left
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.font = '600 28px Inter, Arial';
             ctx.textAlign = 'left';
-            ctx.fillText(appState.selectedProduct, MARGIN.left, 45);
+            ctx.textBaseline = 'top';
+            ctx.fillText(appState.selectedProduct, MARGIN.left, 40);
 
-            // Draw current year (big)
-            ctx.font = 'bold 64px Arial';
-            ctx.textAlign = 'right';
-            ctx.fillStyle = 'rgba(255,255,255,0.9)';
-            ctx.fillText(displayYear, canvas.width - 30, 65);
+            // Year — large, top center
+            ctx.font = '900 120px Inter, Arial';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = 'rgba(255,255,255,0.08)';
+            ctx.fillText(displayYear, canvas.width / 2, 80);
 
-            // Build trail + current positions for each country
-            const countryTrails = {}; // country -> [{ x, y }]
-            const currentPositions = {}; // country -> { x, y, value, iso2, alpha }
+            // Year — readable overlay
+            ctx.font = '800 64px Inter, Arial';
+            ctx.fillStyle = '#fff';
+            ctx.fillText(displayYear, canvas.width / 2, 110);
 
-            // Historical trail points (completed years only)
+            // Subtitle line
+            ctx.font = '500 22px Inter, Arial';
+            ctx.fillStyle = 'rgba(255,255,255,0.35)';
+            ctx.fillText('Top 10 Producers by Country', canvas.width / 2, 200);
+
+            // ---- Separator line ----
+            ctx.fillStyle = 'rgba(255,255,255,0.06)';
+            ctx.fillRect(MARGIN.left, 240, canvas.width - MARGIN.left - MARGIN.right, 1);
+
+            // ---- Build positions ----
+            const countryTrails = {};
+            const currentPositions = {};
+
+            // Historical trail
             for (let i = 0; i <= floorIdx; i++) {
                 const year = appState.allYears[i];
                 const entries = rankByYear[year];
                 if (!entries) continue;
-
                 const x = getXForProgress(i, totalYears);
                 for (const entry of entries) {
                     if (!countryTrails[entry.area]) countryTrails[entry.area] = [];
@@ -817,7 +889,7 @@
                 }
             }
 
-            // Current interpolated positions (the race front)
+            // Current interpolated
             const floorEntries = rankByYear[appState.allYears[floorIdx]] || [];
             const ceilEntries = rankByYear[appState.allYears[ceilIdx]] || [];
 
@@ -826,103 +898,301 @@
             const ceilMap = {};
             for (const e of ceilEntries) ceilMap[e.area] = e;
 
-            // Countries in both years — smooth interpolation
+            const currentX = getXForProgress(yearProgress, totalYears);
             const allCurrent = new Set([...Object.keys(floorMap), ...Object.keys(ceilMap)]);
 
             for (const country of allCurrent) {
                 const inFloor = floorMap[country];
                 const inCeil = ceilMap[country];
 
-                let y, alpha = 1, value, iso2;
+                let y, alpha = 1, value, iso2, rank;
 
                 if (inFloor && inCeil) {
-                    // Present in both — smooth transition
                     y = rankToY(inFloor.rank) + (rankToY(inCeil.rank) - rankToY(inFloor.rank)) * t;
                     value = inFloor.value + (inCeil.value - inFloor.value) * t;
                     iso2 = inFloor.iso2 || inCeil.iso2;
+                    rank = t < 0.5 ? inFloor.rank : inCeil.rank;
                     alpha = 1;
                 } else if (inFloor && !inCeil) {
-                    // Exiting top 10 — fade out and fall
-                    y = rankToY(inFloor.rank) + t * 80;
+                    y = rankToY(inFloor.rank) + t * 100;
                     value = inFloor.value;
                     iso2 = inFloor.iso2;
-                    alpha = Math.max(0, 1 - t);
+                    rank = inFloor.rank;
+                    alpha = Math.max(0, 1 - t * 1.5);
                 } else if (!inFloor && inCeil) {
-                    // Entering top 10 — fade in
                     y = rankToY(inCeil.rank);
                     value = inCeil.value;
                     iso2 = inCeil.iso2;
-                    alpha = t;
+                    rank = inCeil.rank;
+                    alpha = Math.min(1, t * 1.5);
                 }
 
-                // Add interpolated trail point
                 if (!countryTrails[country]) countryTrails[country] = [];
                 countryTrails[country].push({ x: currentX, y });
-
-                currentPositions[country] = { x: currentX, y, value, iso2, alpha };
+                currentPositions[country] = { x: currentX, y, value, iso2, alpha, rank };
             }
 
-            // Draw trail lines — wider, more subtle
-            for (const country of Object.keys(countryTrails)) {
+            // ---- Draw trail lines ----
+            // Non-top-3 first (behind), then top-3 on top
+            const sortedCountries = Object.keys(countryTrails).sort((a, b) => {
+                const ra = currentPositions[a]?.rank ?? 99;
+                const rb = currentPositions[b]?.rank ?? 99;
+                return rb - ra; // higher rank (worse) drawn first = behind
+            });
+
+            for (const country of sortedCountries) {
                 const points = countryTrails[country];
                 if (points.length < 2) continue;
 
-                const iso2 = currentPositions[country]?.iso2 || floorMap[country]?.iso2;
+                const pos = currentPositions[country];
+                const rank = pos?.rank ?? 99;
+                const iso2 = pos?.iso2 || floorMap[country]?.iso2;
                 const color = getCountryColor(country, iso2);
+
+                const isTop3 = rank < 3;
+                const lineAlpha = isTop3 ? CONFIG.trailOpacityTop3 : CONFIG.trailOpacityOther;
+                const lineWidth = rank === 0 ? 6 : (isTop3 ? 4 : 2);
+
                 ctx.strokeStyle = color;
-                ctx.lineWidth = 5;
+                ctx.lineWidth = lineWidth;
                 ctx.lineJoin = 'round';
                 ctx.lineCap = 'round';
-                ctx.globalAlpha = 0.25;
+                ctx.globalAlpha = lineAlpha * (pos?.alpha ?? 0.5);
                 ctx.beginPath();
                 ctx.moveTo(points[0].x, points[0].y);
                 for (let p = 1; p < points.length; p++) {
                     ctx.lineTo(points[p].x, points[p].y);
                 }
                 ctx.stroke();
-                ctx.globalAlpha = 1.0;
             }
+            ctx.globalAlpha = 1;
 
-            // Draw circles at current positions
-            for (const [country, pos] of Object.entries(currentPositions)) {
-                if (pos.alpha <= 0) continue;
+            // ---- Draw circles (top-3 last = on top) ----
+            const circleOrder = Object.entries(currentPositions).sort((a, b) => {
+                return (b[1].rank ?? 99) - (a[1].rank ?? 99);
+            });
+
+            for (const [country, pos] of circleOrder) {
+                if (pos.alpha <= 0.01) continue;
                 const color = getCountryColor(country, pos.iso2);
-                drawCountryCircle(ctx, pos.x, pos.y, country, pos.iso2, color, pos.alpha);
+                drawCountryCircle(pos.x, pos.y, country, pos.iso2, color, pos.alpha, pos.rank);
 
-                // Value label
+                // Country name + value label to the right
+                ctx.save();
                 ctx.globalAlpha = pos.alpha;
-                ctx.fillStyle = '#fff';
-                ctx.font = 'bold 14px Arial';
+
+                const radius = BASE_CIRCLE_RADIUS * (pos.rank === 0 ? CONFIG.top1Scale : (pos.rank < 3 ? CONFIG.top3Scale : 1));
+                const labelX = pos.x + radius + 10;
+
+                // Country name
+                ctx.font = pos.rank < 3 ? 'bold 20px Inter, Arial' : '500 16px Inter, Arial';
+                ctx.fillStyle = pos.rank < 3 ? '#fff' : 'rgba(255,255,255,0.6)';
                 ctx.textAlign = 'left';
-                ctx.fillText(Math.round(pos.value).toLocaleString(), pos.x + CIRCLE_RADIUS + 8, pos.y + 5);
-                ctx.globalAlpha = 1.0;
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(country, labelX, pos.y - 2);
+
+                // Value
+                ctx.font = pos.rank < 3 ? '600 16px Inter, Arial' : '400 13px Inter, Arial';
+                ctx.fillStyle = pos.rank < 3 ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.35)';
+                ctx.textBaseline = 'top';
+                ctx.fillText(formatValue(pos.value), labelX, pos.y + 4);
+
+                // Rank badge for top 3
+                if (pos.rank < 3 && pos.alpha > 0.5) {
+                    const badgeX = pos.x - radius - 20;
+                    ctx.font = 'bold 22px Inter, Arial';
+                    ctx.fillStyle = pos.rank === 0 ? '#ffd700' : (pos.rank === 1 ? '#c0c0c0' : '#cd7f32');
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(`#${pos.rank + 1}`, badgeX, pos.y);
+                }
+
+                ctx.restore();
             }
 
-            // Year label at bottom
-            ctx.fillStyle = 'rgba(255,255,255,0.6)';
-            ctx.font = '16px Arial';
+            // ---- Narrative overlay ----
+            if (CONFIG.narrativeEnabled) {
+                drawNarrativeOverlay(yearProgress);
+            }
+
+            // ---- Bottom: progress bar on canvas ----
+            const progressY = canvas.height - 80;
+            const barLeft = MARGIN.left;
+            const barRight = canvas.width - MARGIN.right;
+            const barWidth = barRight - barLeft;
+
+            // Track
+            ctx.fillStyle = 'rgba(255,255,255,0.06)';
+            roundRect(ctx, barLeft, progressY, barWidth, 6, 3);
+            ctx.fill();
+
+            // Fill
+            const fillFrac = yearProgress / Math.max(maxProgress, 1);
+            const grad = ctx.createLinearGradient(barLeft, 0, barRight, 0);
+            grad.addColorStop(0, '#667eea');
+            grad.addColorStop(1, '#764ba2');
+            ctx.fillStyle = grad;
+            roundRect(ctx, barLeft, progressY, barWidth * fillFrac, 6, 3);
+            ctx.fill();
+
+            // Year labels at edges
+            ctx.font = '500 18px Inter, Arial';
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(appState.allYears[0] || '', barLeft, progressY + 16);
+            ctx.textAlign = 'right';
+            ctx.fillText(appState.allYears[appState.allYears.length - 1] || '', barRight, progressY + 16);
+        }
+
+        function drawNarrativeOverlay(yearProgress) {
+            const floorIdx = Math.floor(yearProgress);
+
+            for (const event of narrativeEvents) {
+                const dist = yearProgress - event.yearIndex;
+                if (dist < 0 || dist > CONFIG.narrativeDurationMs / CONFIG.yearDurationMs) continue;
+
+                const eventT = dist / (CONFIG.narrativeDurationMs / CONFIG.yearDurationMs);
+                const fadeIn = easeOutCubic(Math.min(eventT * 4, 1));
+                const fadeOut = eventT > 0.7 ? 1 - easeOutCubic((eventT - 0.7) / 0.3) : 1;
+                const alpha = fadeIn * fadeOut;
+
+                if (alpha < 0.01) continue;
+
+                ctx.save();
+                ctx.globalAlpha = alpha;
+
+                // Narrative pill at bottom-center above progress
+                const pillY = canvas.height - 140;
+                const pillText = event.text;
+
+                ctx.font = '700 26px Inter, Arial';
+                const textWidth = ctx.measureText(pillText).width;
+                const pillW = textWidth + 48;
+                const pillH = 52;
+                const pillX = (canvas.width - pillW) / 2;
+
+                // Pill background
+                ctx.fillStyle = 'rgba(102, 126, 234, 0.2)';
+                roundRect(ctx, pillX, pillY - pillH / 2, pillW, pillH, pillH / 2);
+                ctx.fill();
+
+                // Pill border
+                ctx.strokeStyle = 'rgba(102, 126, 234, 0.4)';
+                ctx.lineWidth = 1.5;
+                roundRect(ctx, pillX, pillY - pillH / 2, pillW, pillH, pillH / 2);
+                ctx.stroke();
+
+                // Text
+                ctx.fillStyle = '#fff';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(pillText, canvas.width / 2, pillY);
+
+                ctx.restore();
+            }
+        }
+
+        // Rounded rect helper
+        function roundRect(ctx, x, y, w, h, r) {
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+            ctx.lineTo(x + w, y + h - r);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            ctx.lineTo(x + r, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+            ctx.lineTo(x, y + r);
+            ctx.quadraticCurveTo(x, y, x + r, y);
+            ctx.closePath();
+        }
+
+        // ================================================================
+        // END PHASE — Final ranking + CTA
+        // ================================================================
+        function drawEndPhase(t) {
+            const totalYears = appState.allYears.length;
+            drawRaceContent(totalYears - 1);
+
+            // Overlay: darken slightly, show CTA
+            const ctaAlpha = easeOutCubic(Math.min(t * 2, 1));
+
+            ctx.save();
+
+            // CTA at very bottom
+            ctx.globalAlpha = ctaAlpha;
+
+            const ctaY = canvas.height - 180;
+
+            // CTA pill
+            ctx.font = '700 24px Inter, Arial';
+            const ctaWidth = ctx.measureText(CONFIG.ctaText).width + 60;
+            const ctaX = (canvas.width - ctaWidth) / 2;
+
+            ctx.fillStyle = 'rgba(102, 126, 234, 0.15)';
+            roundRect(ctx, ctaX, ctaY - 22, ctaWidth, 44, 22);
+            ctx.fill();
+
+            ctx.strokeStyle = 'rgba(102, 126, 234, 0.3)';
+            ctx.lineWidth = 1;
+            roundRect(ctx, ctaX, ctaY - 22, ctaWidth, 44, 22);
+            ctx.stroke();
+
+            ctx.fillStyle = '#667eea';
             ctx.textAlign = 'center';
-            ctx.fillText(displayYear, currentX, canvas.height - MARGIN.bottom + 30);
+            ctx.textBaseline = 'middle';
+            ctx.fillText(CONFIG.ctaText, canvas.width / 2, ctaY);
+
+            // Sub-CTA
+            ctx.font = '400 18px Inter, Arial';
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.fillText(CONFIG.ctaSubtext, canvas.width / 2, ctaY + 40);
+
+            ctx.restore();
         }
 
-        // Draw static frame for a given year index
-        function drawChart(yearIndex) {
-            animState.pausedProgress = yearIndex;
-            drawRaceFrame(yearIndex);
+        // ================================================================
+        // MASTER DRAW — Routes to correct phase
+        // ================================================================
+        function drawFrame(elapsedMs) {
+            const { phase, t, yearProgress } = getPhaseAndProgress(elapsedMs);
+
+            switch (phase) {
+                case 'hook':
+                    drawHookPhase(t);
+                    break;
+                case 'setup':
+                    drawSetupPhase(t);
+                    break;
+                case 'race':
+                    drawRaceContent(yearProgress);
+                    break;
+                case 'end':
+                    drawEndPhase(t);
+                    break;
+            }
+
+            return { phase, yearProgress };
         }
 
-        // Continuous animation loop
+        // Draw static initial frame (before play)
+        function drawInitialFrame() {
+            drawHookPhase(1); // Show completed hook as initial state
+        }
+
+        // ================================================================
+        // ANIMATION LOOP
+        // ================================================================
         function animationTick(timestamp) {
             if (!appState.isPlaying) return;
 
-            const elapsed = timestamp - animState.startTimestamp;
-            const progress = animState.pausedProgress + elapsed / YEAR_DURATION_MS;
-            const maxProgress = appState.allYears.length - 1;
+            const elapsed = animState.pausedElapsed + (timestamp - animState.startTimestamp);
+            const totalDuration = getTotalDuration();
 
-            if (progress >= maxProgress) {
-                // Race finished
-                drawRaceFrame(maxProgress);
-                animState.pausedProgress = maxProgress;
+            if (elapsed >= totalDuration) {
+                drawFrame(totalDuration);
+                animState.pausedElapsed = totalDuration;
                 appState.isPlaying = false;
                 appState.currentYear = appState.allYears[appState.allYears.length - 1];
                 updateProgressInfo();
@@ -934,56 +1204,65 @@
                 return;
             }
 
-            drawRaceFrame(progress);
+            const { phase, yearProgress } = drawFrame(elapsed);
 
-            // Update UI based on current year
-            const currentYearIdx = Math.floor(progress);
-            appState.currentYear = appState.allYears[currentYearIdx];
+            // Update UI
+            if (phase === 'race' || phase === 'end') {
+                const yi = Math.min(Math.floor(yearProgress), appState.allYears.length - 1);
+                appState.currentYear = appState.allYears[yi];
+            } else {
+                appState.currentYear = appState.allYears[0] || appState.startYear;
+            }
             updateProgressInfo();
-            updateProgressBar();
+            updateProgressBarFromElapsed(elapsed);
 
             animState.rafId = requestAnimationFrame(animationTick);
         }
 
-        // Update progress info
-        function updateProgressInfo() {
-            progressInfo.textContent = `${appState.currentYear} / ${appState.endYear}`;
+        function updateProgressBarFromElapsed(elapsed) {
+            const total = getTotalDuration();
+            const pct = Math.min((elapsed / total) * 100, 100);
+            progressBar.style.width = pct + '%';
         }
 
-        // Update progress bar
+        function updateProgressInfo() {
+            progressInfo.textContent = `${appState.currentYear || ''} / ${appState.endYear || ''}`;
+        }
+
         function updateProgressBar() {
             const total = appState.endYear - appState.startYear + 1;
-            const current = appState.currentYear - appState.startYear;
-            const percentage = (current / total) * 100;
-            progressBar.style.width = percentage + '%';
+            const current = (appState.currentYear || appState.startYear) - appState.startYear;
+            const pct = (current / total) * 100;
+            progressBar.style.width = pct + '%';
         }
 
-        // Play animation
+        // ================================================================
+        // CONTROLS
+        // ================================================================
         function play() {
             if (appState.isPlaying) return;
-            if (animState.pausedProgress >= appState.allYears.length - 1) {
-                animState.pausedProgress = 0;
-                appState.currentYear = appState.allYears[0];
+
+            // If finished, restart
+            if (animState.pausedElapsed >= getTotalDuration()) {
+                animState.pausedElapsed = 0;
             }
+
             appState.isPlaying = true;
             playBtn.disabled = true;
             stopBtn.disabled = false;
             resetBtn.disabled = true;
             exportBtn.disabled = true;
 
-            // Start continuous animation from where we left off
             animState.startTimestamp = performance.now();
             animState.rafId = requestAnimationFrame(animationTick);
         }
 
-        // Stop animation
         function stop() {
             if (animState.rafId) {
-                // Save current progress before stopping
                 const elapsed = performance.now() - animState.startTimestamp;
-                animState.pausedProgress = Math.min(
-                    animState.pausedProgress + elapsed / YEAR_DURATION_MS,
-                    appState.allYears.length - 1
+                animState.pausedElapsed = Math.min(
+                    animState.pausedElapsed + elapsed,
+                    getTotalDuration()
                 );
                 cancelAnimationFrame(animState.rafId);
                 animState.rafId = null;
@@ -995,17 +1274,18 @@
             exportBtn.disabled = false;
         }
 
-        // Reset animation
         function reset() {
             stop();
-            animState.pausedProgress = 0;
-            appState.currentYear = appState.allYears[0];
-            drawChart(0);
+            animState.pausedElapsed = 0;
+            appState.currentYear = appState.allYears[0] || appState.startYear;
+            drawInitialFrame();
             updateProgressInfo();
-            updateProgressBar();
+            progressBar.style.width = '0%';
         }
 
-        // Export video — record canvas directly in the browser
+        // ================================================================
+        // EXPORT — Browser-side WebM recording
+        // ================================================================
         async function exportVideo() {
             if (appState.isExporting) return;
 
@@ -1014,16 +1294,15 @@
             playBtn.disabled = true;
             stopBtn.disabled = true;
             resetBtn.disabled = true;
-            exportBtn.textContent = '⏳ Recording...';
+            exportBtn.textContent = 'Recording...';
 
             try {
-                // Set up MediaRecorder on the canvas
                 const stream = canvas.captureStream(60);
                 const chunks = [];
                 const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
                     ? 'video/webm;codecs=vp9'
                     : 'video/webm';
-                const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 8000000 });
+                const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 12000000 });
 
                 recorder.ondataavailable = (e) => {
                     if (e.data.size > 0) chunks.push(e.data);
@@ -1035,77 +1314,179 @@
 
                 recorder.start();
 
-                // Play the full animation while recording
-                const totalYears = appState.allYears.length;
-                const totalDuration = (totalYears - 1) * YEAR_DURATION_MS;
+                const totalDuration = getTotalDuration();
                 const exportStartTime = performance.now();
 
                 await new Promise((resolve) => {
                     function exportTick(timestamp) {
                         const elapsed = timestamp - exportStartTime;
-                        const progress = Math.min(elapsed / YEAR_DURATION_MS, totalYears - 1);
 
-                        drawRaceFrame(progress);
-
-                        // Update progress display
-                        const pct = Math.round((progress / (totalYears - 1)) * 100);
-                        exportBtn.textContent = `⏳ Recording ${pct}%`;
-
-                        if (progress >= totalYears - 1) {
+                        if (elapsed >= totalDuration) {
+                            drawFrame(totalDuration);
                             resolve();
                             return;
                         }
+
+                        drawFrame(elapsed);
+
+                        const pct = Math.round((elapsed / totalDuration) * 100);
+                        exportBtn.textContent = `Recording ${pct}%`;
+
                         requestAnimationFrame(exportTick);
                     }
                     requestAnimationFrame(exportTick);
                 });
 
-                // Hold on the last frame briefly
+                // Hold final frame
                 await new Promise(r => setTimeout(r, 500));
 
                 recorder.stop();
                 await recordingDone;
 
-                // Download the video
                 const blob = new Blob(chunks, { type: mimeType });
                 const url = URL.createObjectURL(blob);
-                const downloadLink = document.createElement('a');
-                downloadLink.href = url;
-                downloadLink.download = `${appState.selectedProduct.replace(/\s+/g, '_')}_${appState.startYear}.webm`;
-                document.body.appendChild(downloadLink);
-                downloadLink.click();
-                document.body.removeChild(downloadLink);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `${appState.selectedProduct.replace(/\s+/g, '_')}_race_${appState.startYear}-${appState.endYear}.webm`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
                 URL.revokeObjectURL(url);
 
-                // Reset to last frame
-                animState.pausedProgress = totalYears - 1;
-                appState.currentYear = appState.allYears[totalYears - 1];
+                // Show end state
+                animState.pausedElapsed = totalDuration;
+                appState.currentYear = appState.allYears[appState.allYears.length - 1];
                 updateProgressInfo();
-                updateProgressBar();
+                progressBar.style.width = '100%';
             } catch (error) {
                 console.error('Export failed:', error);
                 showError('Export failed: ' + error.message);
             } finally {
                 appState.isExporting = false;
                 exportBtn.disabled = false;
-                exportBtn.textContent = '💾 Export Video';
+                exportBtn.textContent = 'Export';
                 playBtn.disabled = false;
                 resetBtn.disabled = false;
             }
         }
 
-        // Show error
+        // ================================================================
+        // DATA LOADING
+        // ================================================================
         function showError(message) {
             errorBox.textContent = message;
             errorBox.classList.remove('hidden');
         }
 
-        // Event listeners
+        async function loadProducts() {
+            try {
+                errorBox.classList.add('hidden');
+                const response = await fetch(`${API_URL}/api/products`);
+                if (!response.ok) throw new Error('Failed to load products');
+
+                appState.products = await response.json();
+
+                productSelect.innerHTML = '<option value="">-- Select Product --</option>';
+                appState.products.forEach(product => {
+                    const option = document.createElement('option');
+                    option.value = product;
+                    option.textContent = product;
+                    productSelect.appendChild(option);
+                });
+
+                if (appState.products.length > 0) {
+                    appState.selectedProduct = appState.products[0];
+                    productSelect.value = appState.selectedProduct;
+                    loadYearRange(appState.selectedProduct);
+                }
+            } catch (error) {
+                console.error('Error loading products:', error);
+                showError('Failed to load products: ' + error.message);
+            }
+        }
+
+        async function loadYearRange(product) {
+            if (!product) return;
+            try {
+                errorBox.classList.add('hidden');
+                const response = await fetch(`${API_URL}/api/year-range/${encodeURIComponent(product)}`);
+                if (!response.ok) throw new Error('Failed to load year range');
+
+                const result = await response.json();
+                appState.yearRange = { min: result.minYear, max: result.maxYear };
+
+                yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
+                for (let year = result.minYear; year <= result.maxYear; year++) {
+                    const option = document.createElement('option');
+                    option.value = year;
+                    option.textContent = year;
+                    yearSelect.appendChild(option);
+                }
+                yearSelect.disabled = false;
+
+                if (result.minYear) {
+                    appState.selectedStartYear = result.minYear.toString();
+                    yearSelect.value = appState.selectedStartYear;
+                    updateYearInfo();
+                    loadData();
+                }
+            } catch (error) {
+                console.error('Error loading year range:', error);
+                showError('Failed to load year range: ' + error.message);
+            }
+        }
+
+        function updateYearInfo() {
+            if (appState.yearRange.min && appState.yearRange.max && appState.selectedStartYear) {
+                const yearCount = appState.yearRange.max - parseInt(appState.selectedStartYear) + 1;
+                yearInfo.textContent = `Available: ${appState.yearRange.min} - ${appState.yearRange.max} (${yearCount} years)`;
+                yearInfo.style.display = 'block';
+            }
+        }
+
+        async function loadData() {
+            if (!appState.selectedProduct || !appState.selectedStartYear) return;
+
+            try {
+                errorBox.classList.add('hidden');
+                const response = await fetch(
+                    `${API_URL}/api/data?product=${encodeURIComponent(appState.selectedProduct)}&startYear=${appState.selectedStartYear}&endYear=${appState.yearRange.max}`
+                );
+                if (!response.ok) throw new Error('Failed to load data');
+
+                appState.data = await response.json();
+                appState.startYear = parseInt(appState.selectedStartYear);
+                appState.endYear = appState.yearRange.max;
+                appState.currentYear = appState.startYear;
+                appState.allYears = Object.keys(appState.data.data)
+                    .map(y => parseInt(y))
+                    .sort((a, b) => a - b);
+
+                await preloadFlags(appState.data.data);
+                computeRankHistory();
+
+                // Reset animation state
+                animState.pausedElapsed = 0;
+
+                chartContainer.classList.remove('hidden');
+                infoBox.classList.add('hidden');
+
+                // Show polished initial frame (hook card)
+                drawInitialFrame();
+                updateProgressInfo();
+                progressBar.style.width = '0%';
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showError('Failed to load data: ' + error.message);
+            }
+        }
+
+        // ================================================================
+        // EVENT LISTENERS
+        // ================================================================
         productSelect.addEventListener('change', (e) => {
             appState.selectedProduct = e.target.value;
-            if (appState.selectedProduct) {
-                loadYearRange(appState.selectedProduct);
-            }
+            if (appState.selectedProduct) loadYearRange(appState.selectedProduct);
         });
 
         yearSelect.addEventListener('change', (e) => {
@@ -1121,7 +1502,6 @@
         resetBtn.addEventListener('click', reset);
         exportBtn.addEventListener('click', exportVideo);
 
-        // Initialize
         loadProducts();
     </script>
 </body>
