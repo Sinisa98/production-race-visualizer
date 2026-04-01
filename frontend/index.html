@@ -170,49 +170,70 @@
 
 <script>
 // ════════════════════════════════════════════════════════════════
-// CONFIG — Reusable template system. Change these per video.
+// CONFIG
 // ════════════════════════════════════════════════════════════════
 const CONFIG = {
-    // Canvas
     width: 1080,
     height: 1920,
     bg: '#0c0c18',
 
-    // ── Timing (ms) ──
-    hookDur:       600,    // title pop-in
-    contextDur:    600,    // subtitle + #1 flash
-    dramaticDur:   800,    // first frame animates in
-    raceTargetDur: 8000,   // target race duration
-    endHoldDur:    2500,   // hold final ranking
-    ctaDur:        2000,   // CTA display
+    // Timing (ms)
+    hookDur:       600,
+    contextDur:    600,
+    dramaticDur:   800,
+    raceTargetDur: 8000,
+    endHoldDur:    2500,
+    ctaDur:        2000,
 
-    // ── Text templates ({product}, {startYear}, {endYear} auto-replaced) ──
+    // Text templates
     hookLine1: 'Who Produces the Most',
     hookLine2: '{product}?',
     subtitle: 'Top 10 Countries · {startYear}–{endYear} · Tonnes',
     ctaMain: 'Follow for more data races',
     ctaSub: 'Which product should we race next?',
 
-    // ── Narrative overlays (auto-generated + manual) ──
-    // Manual overrides: array of { yearIndex, text }. Leave empty for auto-only.
+    // Narrative
     manualNarratives: [],
     narrativeDurMs: 2000,
     maxNarratives: 5,
 
-    // ── Emphasis ──
+    // ── Trail system (NEW) ──
+    trailYearWindow: 3.5,      // trail shows last N year-indices of motion
+    // Thickness per tier
+    trailThickness: {
+        tier1: 14,   // #1
+        tier2: 10,   // #2-3
+        tier3: 7,    // #4-6
+        tier4: 4,    // #7-10
+    },
+    // Peak opacity per tier (at node end, fades to 0 at tail)
+    trailOpacity: {
+        tier1: 0.65,
+        tier2: 0.45,
+        tier3: 0.28,
+        tier4: 0.15,
+    },
+    // Glow on #1 trail
+    trailGlow: { enabled: true, blur: 20 },
+
+    // Node emphasis
     top1Scale: 1.35,
     top3Scale: 1.12,
     top1GlowRadius: 35,
-    trailAlphaTop1: 0.45,
-    trailAlphaTop3: 0.25,
-    trailAlphaRest: 0.06,
 
-    // ── Adaptive pacing ──
-    // Drama scoring: years with rank changes get more time
-    minYearMs: 60,     // fastest a boring year plays
-    maxYearMs: 250,    // slowest a dramatic year plays
+    // Lane system
+    laneAlpha: 0.025,
 
-    // ── Colors ──
+    // Overtake animation
+    overtakeDurMs: 300,
+    overtakeScaleBoost: 0.12,
+    overtakeTrailBrightBoost: 1.6,
+
+    // Adaptive pacing
+    minYearMs: 60,
+    maxYearMs: 250,
+
+    // Colors
     accent: '#667eea',
     accentGrad: ['#667eea', '#764ba2'],
 };
@@ -228,7 +249,6 @@ let appState = {
     isExporting: false,
 };
 
-// DOM refs
 const $ = id => document.getElementById(id);
 const productSelect = $('product-select');
 const yearSelect = $('year-select');
@@ -309,13 +329,33 @@ function getColor(area, iso2) {
 }
 
 // ════════════════════════════════════════════════════════════════
+// TIER SYSTEM
+// ════════════════════════════════════════════════════════════════
+function getTier(rank) {
+    if (rank === 0) return 1;
+    if (rank < 3) return 2;
+    if (rank < 6) return 3;
+    return 4;
+}
+
+function getTrailThickness(rank) {
+    const tier = getTier(rank);
+    return CONFIG.trailThickness[`tier${tier}`];
+}
+
+function getTrailPeakOpacity(rank) {
+    const tier = getTier(rank);
+    return CONFIG.trailOpacity[`tier${tier}`];
+}
+
+// ════════════════════════════════════════════════════════════════
 // DATA PROCESSING
 // ════════════════════════════════════════════════════════════════
 let rankByYear = {};
 let missingFlagCountries = new Set();
 let narrativeEvents = [];
-let dramaScores = [];       // per-transition drama score
-let yearTimeline = [];      // cumulative ms offsets for each year index
+let dramaScores = [];
+let yearTimeline = [];
 let totalRaceDuration = 0;
 
 function computeRankHistory() {
@@ -338,7 +378,6 @@ function computeRankHistory() {
     generateNarratives();
 }
 
-// ── Adaptive pacing: score each year transition ──
 function computeDramaScores() {
     const years = appState.allYears;
     dramaScores = [];
@@ -346,48 +385,35 @@ function computeDramaScores() {
     for (let i = 0; i < years.length - 1; i++) {
         const cur = rankByYear[years[i]] || [];
         const nxt = rankByYear[years[i + 1]] || [];
-
-        const curMap = {};
-        for (const e of cur) curMap[e.area] = e.rank;
-        const nxtMap = {};
-        for (const e of nxt) nxtMap[e.area] = e.rank;
+        const curMap = {}; for (const e of cur) curMap[e.area] = e.rank;
+        const nxtMap = {}; for (const e of nxt) nxtMap[e.area] = e.rank;
 
         let score = 0;
-        // Rank changes
         for (const area of Object.keys(nxtMap)) {
             if (curMap[area] !== undefined) {
                 const diff = Math.abs(curMap[area] - nxtMap[area]);
                 score += diff;
-                // Extra weight for top-3 movement
                 if (curMap[area] < 3 || nxtMap[area] < 3) score += diff * 2;
             } else {
-                score += 3; // new entry
+                score += 3;
             }
         }
-        // Leadership change = big drama
         if (cur[0] && nxt[0] && cur[0].area !== nxt[0].area) score += 8;
-
         dramaScores.push(score);
     }
 
-    // Normalize drama scores to ms durations
     if (dramaScores.length === 0) return;
-
     const maxScore = Math.max(...dramaScores, 1);
-    const minMs = CONFIG.minYearMs;
-    const maxMs = CONFIG.maxYearMs;
 
-    // Map scores to durations
     const rawDurations = dramaScores.map(s => {
         const t = s / maxScore;
-        return minMs + t * (maxMs - minMs);
+        return CONFIG.minYearMs + t * (CONFIG.maxYearMs - CONFIG.minYearMs);
     });
 
-    // Scale to hit target total race duration
     const rawTotal = rawDurations.reduce((a, b) => a + b, 0);
     const scale = CONFIG.raceTargetDur / rawTotal;
 
-    yearTimeline = [0]; // cumulative ms at each year index
+    yearTimeline = [0];
     let cumulative = 0;
     for (let i = 0; i < rawDurations.length; i++) {
         cumulative += rawDurations[i] * scale;
@@ -396,67 +422,49 @@ function computeDramaScores() {
     totalRaceDuration = cumulative;
 }
 
-// Convert race elapsed ms → fractional year progress
 function raceElapsedToProgress(raceMs) {
     if (yearTimeline.length < 2) return 0;
     raceMs = Math.max(0, Math.min(raceMs, totalRaceDuration));
-
     for (let i = 0; i < yearTimeline.length - 1; i++) {
         if (raceMs <= yearTimeline[i + 1]) {
             const segStart = yearTimeline[i];
             const segEnd = yearTimeline[i + 1];
-            const t = (raceMs - segStart) / (segEnd - segStart);
-            return i + t;
+            return i + (raceMs - segStart) / (segEnd - segStart);
         }
     }
     return appState.allYears.length - 1;
 }
 
-// ── Narrative engine ──
 function generateNarratives() {
     narrativeEvents = [];
     const years = appState.allYears;
     if (years.length < 3) return;
 
     let prevLeader = null;
-
     for (let i = 0; i < years.length; i++) {
         const entries = rankByYear[years[i]];
         if (!entries || !entries.length) continue;
         const leader = entries[0].area;
 
-        // Opening
-        if (i === 0) {
-            narrativeEvents.push({ yearIndex: 0, text: `${leader} leads in ${years[0]}`, type: 'intro' });
-        }
-
-        // Leadership change
+        if (i === 0) narrativeEvents.push({ yearIndex: 0, text: `${leader} leads in ${years[0]}`, type: 'intro' });
         if (prevLeader && leader !== prevLeader) {
             narrativeEvents.push({ yearIndex: i, text: `${leader} takes the lead!`, type: 'lead' });
         }
-
-        // Surge: 3+ rank jump
         if (i > 0) {
             const prev = rankByYear[years[i - 1]];
             if (prev) {
-                const prevMap = {};
-                for (const e of prev) prevMap[e.area] = e.rank;
+                const prevMap = {}; for (const e of prev) prevMap[e.area] = e.rank;
                 for (const e of entries) {
                     const pr = prevMap[e.area];
-                    if (pr !== undefined && pr - e.rank >= 3) {
+                    if (pr !== undefined && pr - e.rank >= 3)
                         narrativeEvents.push({ yearIndex: i, text: `${e.area} surges!`, type: 'surge' });
-                    }
                 }
             }
         }
-
         prevLeader = leader;
     }
 
-    // Add manual overrides
     for (const m of CONFIG.manualNarratives) narrativeEvents.push(m);
-
-    // Dedupe: keep max 1 per 4 year-indices, prioritize lead changes
     narrativeEvents.sort((a, b) => a.yearIndex - b.yearIndex);
     const filtered = [];
     let lastIdx = -10;
@@ -469,22 +477,16 @@ function generateNarratives() {
     narrativeEvents = filtered.slice(0, CONFIG.maxNarratives);
 }
 
-// ── Overtake detection for pulse effects ──
 function getOvertakes(floorIdx) {
     const years = appState.allYears;
     if (floorIdx <= 0 || floorIdx >= years.length) return [];
-
     const prev = rankByYear[years[floorIdx - 1]] || [];
     const cur = rankByYear[years[floorIdx]] || [];
-    const prevMap = {};
-    for (const e of prev) prevMap[e.area] = e.rank;
-
+    const prevMap = {}; for (const e of prev) prevMap[e.area] = e.rank;
     const overtakes = [];
     for (const e of cur) {
         const pr = prevMap[e.area];
-        if (pr !== undefined && pr > e.rank) {
-            overtakes.push({ area: e.area, from: pr, to: e.rank, magnitude: pr - e.rank });
-        }
+        if (pr !== undefined && pr > e.rank) overtakes.push({ area: e.area, from: pr, to: e.rank, magnitude: pr - e.rank });
     }
     return overtakes;
 }
@@ -499,7 +501,7 @@ function updateMissingFlagsDisplay() {
 // LAYOUT
 // ════════════════════════════════════════════════════════════════
 const MARGIN = { top: 310, right: 60, bottom: 220, left: 60 };
-const BASE_R = 38; // base circle radius
+const BASE_R = 38;
 
 function rankToY(rank) {
     const h = canvas.height - MARGIN.top - MARGIN.bottom;
@@ -544,12 +546,33 @@ function formatVal(v) {
 function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
 function easeInOut(t) { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2; }
 function easePop(t) {
-    // Overshoot bounce for hook
     if (t < 0.6) return 1.15 * easeOut(t / 0.6);
     return 1.15 - 0.15 * easeOut((t - 0.6) / 0.4);
 }
 
-// Draw flag circle with tier emphasis
+// ── Lane renderer ──
+function drawLanes() {
+    const chartL = MARGIN.left;
+    const chartR = canvas.width - MARGIN.right;
+    const w = chartR - chartL;
+
+    for (let rank = 0; rank < 10; rank++) {
+        const y = rankToY(rank);
+        const h = (canvas.height - MARGIN.top - MARGIN.bottom) / 10;
+
+        // Alternating lane bands
+        if (rank % 2 === 0) {
+            ctx.fillStyle = `rgba(255,255,255,${CONFIG.laneAlpha})`;
+            ctx.fillRect(chartL, y - h / 2, w, h);
+        }
+
+        // Subtle lane line
+        ctx.fillStyle = `rgba(255,255,255,${CONFIG.laneAlpha * 0.8})`;
+        ctx.fillRect(chartL, y + h / 2 - 0.5, w, 1);
+    }
+}
+
+// ── Node renderer ──
 function drawCircle(x, y, country, iso2, color, alpha, rank, pulseAmount) {
     ctx.save();
     ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
@@ -558,29 +581,23 @@ function drawCircle(x, y, country, iso2, color, alpha, rank, pulseAmount) {
     if (rank === 0) r *= CONFIG.top1Scale;
     else if (rank < 3) r *= CONFIG.top3Scale;
 
-    // Pulse for overtake
-    if (pulseAmount > 0) r *= 1 + pulseAmount * 0.15;
+    if (pulseAmount > 0) r *= 1 + pulseAmount * CONFIG.overtakeScaleBoost;
 
-    // Glow for #1
     if (rank === 0 && alpha > 0.5) {
         ctx.shadowColor = color;
         ctx.shadowBlur = CONFIG.top1GlowRadius + pulseAmount * 20;
     }
 
-    // Circle fill
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fillStyle = color;
     ctx.fill();
-
     ctx.shadowBlur = 0;
 
-    // Border
     ctx.strokeStyle = rank === 0 ? '#fff' : (rank < 3 ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.3)');
     ctx.lineWidth = rank === 0 ? 4 : (rank < 3 ? 3 : 1.5);
     ctx.stroke();
 
-    // Flag
     const flag = iso2 ? flagCache[iso2.toLowerCase()] : null;
     if (flag) {
         ctx.save();
@@ -602,17 +619,92 @@ function drawCircle(x, y, country, iso2, color, alpha, rank, pulseAmount) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// PHASE: HOOK (0–600ms) — instant title pop
+// TRAIL RENDERER — Short fading motion trails
+// ════════════════════════════════════════════════════════════════
+
+// Build recent position history for a country within the trail window
+function getRecentTrail(country, yearProgress, totalYears) {
+    const trailStart = Math.max(0, yearProgress - CONFIG.trailYearWindow);
+    const points = [];
+
+    // Walk through year indices within the trail window
+    const startIdx = Math.max(0, Math.floor(trailStart));
+    const endIdx = Math.floor(yearProgress);
+
+    for (let i = startIdx; i <= endIdx; i++) {
+        const yr = appState.allYears[i];
+        const entries = rankByYear[yr];
+        if (!entries) continue;
+        const entry = entries.find(e => e.area === country);
+        if (!entry) continue;
+
+        const x = progressToX(i, totalYears);
+        const y = rankToY(entry.rank);
+        const yearIdx = i;
+        points.push({ x, y, yearIdx });
+    }
+
+    return points;
+}
+
+// Draw a single country's motion trail with gradient fade
+function drawTrail(points, currentX, currentY, color, rank, alpha, pulseAmount) {
+    if (points.length === 0) return;
+
+    // Add current interpolated position as final point
+    const allPts = [...points, { x: currentX, y: currentY, yearIdx: -1 }];
+    if (allPts.length < 2) return;
+
+    const thickness = getTrailThickness(rank);
+    const peakAlpha = getTrailPeakOpacity(rank) * alpha;
+
+    // Overtake brightness boost
+    const brightBoost = pulseAmount > 0 ? 1 + pulseAmount * (CONFIG.overtakeTrailBrightBoost - 1) : 1;
+
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // Draw segments from tail to head with increasing opacity
+    for (let i = 1; i < allPts.length; i++) {
+        const segFrac = i / (allPts.length - 1); // 0 at tail, 1 at head
+        // Cubic fade: strongest near head
+        const fadedAlpha = peakAlpha * Math.pow(segFrac, 2.0) * brightBoost;
+
+        if (fadedAlpha < 0.005) continue;
+
+        ctx.globalAlpha = Math.min(fadedAlpha, 1);
+        ctx.strokeStyle = color;
+        // Taper: thinner at tail, full at head
+        ctx.lineWidth = thickness * (0.3 + 0.7 * segFrac);
+
+        // #1 trail glow
+        if (rank === 0 && CONFIG.trailGlow.enabled && segFrac > 0.5) {
+            ctx.shadowColor = color;
+            ctx.shadowBlur = CONFIG.trailGlow.blur * segFrac;
+        } else {
+            ctx.shadowBlur = 0;
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(allPts[i - 1].x, allPts[i - 1].y);
+        ctx.lineTo(allPts[i].x, allPts[i].y);
+        ctx.stroke();
+    }
+
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+}
+
+// ════════════════════════════════════════════════════════════════
+// PHASE: HOOK
 // ════════════════════════════════════════════════════════════════
 function drawHook(t) {
     drawBg();
-
     const cx = canvas.width / 2;
     const cy = canvas.height / 2 - 40;
 
-    // Scale pop animation
     const scale = easePop(Math.min(t * 1.8, 1));
-    const fadeIn = Math.min(t * 3, 1); // very fast fade
+    const fadeIn = Math.min(t * 3, 1);
 
     ctx.save();
     ctx.globalAlpha = fadeIn;
@@ -620,14 +712,12 @@ function drawHook(t) {
     ctx.scale(scale, scale);
     ctx.translate(-cx, -cy);
 
-    // Line 1: "Who Produces the Most"
     ctx.font = '600 44px Inter,sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.7)';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(CONFIG.hookLine1, cx, cy - 50);
 
-    // Line 2: Product name (BIG)
     const line2 = CONFIG.hookLine2.replace('{product}', appState.selectedProduct);
     ctx.font = '900 76px Inter,sans-serif';
     ctx.fillStyle = '#fff';
@@ -635,7 +725,6 @@ function drawHook(t) {
 
     ctx.restore();
 
-    // Accent bar (appears fast)
     const barW = 80 * Math.min(t * 4, 1);
     ctx.fillStyle = CONFIG.accent;
     ctx.fillRect(cx - barW/2, cy - 110, barW, 4);
@@ -643,18 +732,14 @@ function drawHook(t) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// PHASE: CONTEXT (600–1200ms) — subtitle + flash #1
+// PHASE: CONTEXT
 // ════════════════════════════════════════════════════════════════
 function drawContext(t) {
     drawBg();
-
     const cx = canvas.width / 2;
     const cy = canvas.height / 2 - 40;
 
-    // Keep title visible (slight scale down to settle)
-    const titleAlpha = 1;
-    ctx.globalAlpha = titleAlpha;
-
+    ctx.globalAlpha = 1;
     ctx.font = '600 44px Inter,sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.7)';
     ctx.textAlign = 'center';
@@ -666,12 +751,10 @@ function drawContext(t) {
     ctx.fillStyle = '#fff';
     ctx.fillText(line2, cx, cy + 40);
 
-    // Accent bars
     ctx.fillStyle = CONFIG.accent;
     ctx.fillRect(cx - 40, cy - 110, 80, 4);
     ctx.fillRect(cx - 40, cy + 100, 80, 4);
 
-    // Subtitle fades in
     const subAlpha = easeOut(Math.min(t * 2.5, 1));
     ctx.globalAlpha = subAlpha;
     const sub = CONFIG.subtitle
@@ -681,10 +764,9 @@ function drawContext(t) {
     ctx.fillStyle = 'rgba(255,255,255,0.45)';
     ctx.fillText(sub, cx, cy + 130);
 
-    // Flash #1 country flag (brief tease)
-    const firstEntries = rankByYear[appState.allYears[appState.allYears.length - 1]];
-    if (firstEntries && firstEntries.length > 0 && t > 0.3) {
-        const winner = firstEntries[0];
+    const lastEntries = rankByYear[appState.allYears[appState.allYears.length - 1]];
+    if (lastEntries && lastEntries.length > 0 && t > 0.3) {
+        const winner = lastEntries[0];
         const flashAlpha = Math.min((t - 0.3) * 3, 1) * (t < 0.8 ? 1 : Math.max(0, 1 - (t - 0.8) * 5));
         if (flashAlpha > 0) {
             const color = getColor(winner.area, winner.iso2);
@@ -692,28 +774,25 @@ function drawContext(t) {
             ctx.globalAlpha = flashAlpha * 0.5;
             ctx.font = '600 20px Inter,sans-serif';
             ctx.fillStyle = 'rgba(255,255,255,0.6)';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
             ctx.fillText('???', cx, cy + 280);
         }
     }
-
     ctx.globalAlpha = 1;
 }
 
 // ════════════════════════════════════════════════════════════════
-// PHASE: DRAMATIC START (1200–2000ms) — transition into race
+// PHASE: DRAMATIC START
 // ════════════════════════════════════════════════════════════════
 function drawDramatic(t) {
-    // Cross-fade: title fades out, first race frame fades in
     const raceAlpha = easeInOut(t);
-
     ctx.globalAlpha = raceAlpha;
     drawRaceFrame(0, false);
 
-    // Title overlay fading out
     ctx.globalAlpha = 1 - raceAlpha;
     const cx = canvas.width / 2;
     const cy = canvas.height / 2 - 40;
-
     ctx.fillStyle = CONFIG.bg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.font = '600 44px Inter,sans-serif';
@@ -725,12 +804,11 @@ function drawDramatic(t) {
     ctx.font = '900 76px Inter,sans-serif';
     ctx.fillStyle = '#fff';
     ctx.fillText(line2, cx, cy + 40);
-
     ctx.globalAlpha = 1;
 }
 
 // ════════════════════════════════════════════════════════════════
-// PHASE: RACE — Main animation engine
+// PHASE: RACE — Main animation with short motion trails
 // ════════════════════════════════════════════════════════════════
 function drawRaceFrame(yearProgress, showNarrative = true) {
     const totalYears = appState.allYears.length;
@@ -746,26 +824,22 @@ function drawRaceFrame(yearProgress, showNarrative = true) {
     const displayYear = appState.allYears[floorIdx] || appState.allYears[0] || '';
 
     // ── Header ──
-    // Product name — subtle, top left
     ctx.fillStyle = 'rgba(255,255,255,0.4)';
     ctx.font = '600 26px Inter,sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.fillText(appState.selectedProduct, MARGIN.left, 40);
 
-    // Year — BIG watermark behind
     ctx.font = '900 140px Inter,sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.fillStyle = 'rgba(255,255,255,0.05)';
     ctx.fillText(displayYear, canvas.width / 2, 60);
 
-    // Year — readable on top
     ctx.font = '800 72px Inter,sans-serif';
     ctx.fillStyle = '#fff';
     ctx.fillText(displayYear, canvas.width / 2, 100);
 
-    // Subtitle
     ctx.font = '500 22px Inter,sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.3)';
     ctx.fillText('Top 10 Producers by Country', canvas.width / 2, 195);
@@ -774,21 +848,10 @@ function drawRaceFrame(yearProgress, showNarrative = true) {
     ctx.fillStyle = 'rgba(255,255,255,0.05)';
     ctx.fillRect(MARGIN.left, 240, canvas.width - MARGIN.left - MARGIN.right, 1);
 
-    // ── Build trails + positions ──
-    const countryTrails = {};
-    const currentPos = {};
+    // ── Lanes ──
+    drawLanes();
 
-    for (let i = 0; i <= floorIdx; i++) {
-        const yr = appState.allYears[i];
-        const entries = rankByYear[yr];
-        if (!entries) continue;
-        const x = progressToX(i, totalYears);
-        for (const e of entries) {
-            if (!countryTrails[e.area]) countryTrails[e.area] = [];
-            countryTrails[e.area].push({ x, y: rankToY(e.rank) });
-        }
-    }
-
+    // ── Compute current positions ──
     const floorEntries = rankByYear[appState.allYears[floorIdx]] || [];
     const ceilEntries = rankByYear[appState.allYears[ceilIdx]] || [];
     const floorMap = {}; for (const e of floorEntries) floorMap[e.area] = e;
@@ -797,10 +860,11 @@ function drawRaceFrame(yearProgress, showNarrative = true) {
     const curX = progressToX(yearProgress, totalYears);
     const allCountries = new Set([...Object.keys(floorMap), ...Object.keys(ceilMap)]);
 
-    // Overtake detection for pulse
     const overtakes = getOvertakes(ceilIdx);
     const overtakeMap = {};
     for (const o of overtakes) overtakeMap[o.area] = o.magnitude;
+
+    const currentPos = {};
 
     for (const country of allCountries) {
         const inF = floorMap[country];
@@ -826,97 +890,74 @@ function drawRaceFrame(yearProgress, showNarrative = true) {
             alpha = Math.min(1, t * 2);
         }
 
-        if (!countryTrails[country]) countryTrails[country] = [];
-        countryTrails[country].push({ x: curX, y });
         currentPos[country] = { x: curX, y, value, iso2, alpha, rank };
     }
 
-    // ── Draw trails (back to front by rank) ──
-    const trailOrder = Object.keys(countryTrails).sort((a, b) => {
-        return (currentPos[b]?.rank ?? 99) - (currentPos[a]?.rank ?? 99);
-    });
+    // ── Draw trails: back-to-front (worst rank first) ──
+    const trailOrder = Object.entries(currentPos).sort((a, b) => (b[1].rank ?? 99) - (a[1].rank ?? 99));
 
-    for (const country of trailOrder) {
-        const pts = countryTrails[country];
-        if (pts.length < 2) continue;
-        const pos = currentPos[country];
-        const rank = pos?.rank ?? 99;
-        const iso2 = pos?.iso2 || floorMap[country]?.iso2;
-        const color = getColor(country, iso2);
+    for (const [country, pos] of trailOrder) {
+        if (pos.alpha < 0.02) continue;
 
-        let trailAlpha;
-        if (rank === 0) trailAlpha = CONFIG.trailAlphaTop1;
-        else if (rank < 3) trailAlpha = CONFIG.trailAlphaTop3;
-        else trailAlpha = CONFIG.trailAlphaRest;
+        const color = getColor(country, pos.iso2);
+        const recentPts = getRecentTrail(country, yearProgress, totalYears);
+        const overtakeMag = overtakeMap[country] || 0;
+        const pulse = overtakeMag > 0 ? Math.max(0, 1 - t * 2) * Math.min(overtakeMag / 3, 1) : 0;
 
-        const lineW = rank === 0 ? 7 : (rank < 3 ? 4 : 1.5);
-
-        ctx.strokeStyle = color;
-        ctx.lineWidth = lineW;
-        ctx.lineJoin = 'round';
-        ctx.lineCap = 'round';
-        ctx.globalAlpha = trailAlpha * (pos?.alpha ?? 0.3);
-
-        // Fade trail with distance from current position (more recent = stronger)
-        if (pts.length > 3) {
-            for (let p = 1; p < pts.length; p++) {
-                const ageFrac = p / pts.length; // 0=oldest, 1=newest
-                const segAlpha = trailAlpha * (pos?.alpha ?? 0.3) * (0.2 + 0.8 * ageFrac);
-                ctx.globalAlpha = segAlpha;
-                ctx.beginPath();
-                ctx.moveTo(pts[p-1].x, pts[p-1].y);
-                ctx.lineTo(pts[p].x, pts[p].y);
-                ctx.stroke();
-            }
-        } else {
-            ctx.beginPath();
-            ctx.moveTo(pts[0].x, pts[0].y);
-            for (let p = 1; p < pts.length; p++) ctx.lineTo(pts[p].x, pts[p].y);
-            ctx.stroke();
-        }
+        drawTrail(recentPts, pos.x, pos.y, color, pos.rank, pos.alpha, pulse);
     }
-    ctx.globalAlpha = 1;
 
-    // ── Draw circles (worst rank first, #1 on top) ──
+    // ── Draw nodes: back-to-front ──
     const circleOrder = Object.entries(currentPos).sort((a, b) => (b[1].rank ?? 99) - (a[1].rank ?? 99));
 
     for (const [country, pos] of circleOrder) {
         if (pos.alpha < 0.01) continue;
 
         const color = getColor(country, pos.iso2);
-        // Pulse amount: decays with t, strongest at t=0 of the transition
         const overtakeMag = overtakeMap[country] || 0;
         const pulse = overtakeMag > 0 ? Math.max(0, 1 - t * 2) * Math.min(overtakeMag / 3, 1) : 0;
 
         drawCircle(pos.x, pos.y, country, pos.iso2, color, pos.alpha, pos.rank, pulse);
 
-        // Labels
+        // ── Labels ──
         ctx.save();
         ctx.globalAlpha = pos.alpha;
         const r = BASE_R * (pos.rank === 0 ? CONFIG.top1Scale : (pos.rank < 3 ? CONFIG.top3Scale : 1));
         const lx = pos.x + r + 10;
 
-        // Country name
+        // Country name — tier-based sizing
         ctx.textBaseline = 'bottom';
         ctx.textAlign = 'left';
-        if (pos.rank < 3) {
-            ctx.font = 'bold 22px Inter,sans-serif';
+        if (pos.rank === 0) {
+            ctx.font = 'bold 24px Inter,sans-serif';
             ctx.fillStyle = '#fff';
+        } else if (pos.rank < 3) {
+            ctx.font = 'bold 20px Inter,sans-serif';
+            ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        } else if (pos.rank < 6) {
+            ctx.font = '500 17px Inter,sans-serif';
+            ctx.fillStyle = 'rgba(255,255,255,0.55)';
         } else {
-            ctx.font = '500 16px Inter,sans-serif';
-            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.font = '500 15px Inter,sans-serif';
+            ctx.fillStyle = 'rgba(255,255,255,0.35)';
         }
         ctx.fillText(country, lx, pos.y - 3);
 
-        // Value
-        if (pos.rank < 3) {
-            ctx.font = '600 17px Inter,sans-serif';
-            ctx.fillStyle = 'rgba(255,255,255,0.65)';
+        // Value — tier-based
+        ctx.textBaseline = 'top';
+        if (pos.rank === 0) {
+            ctx.font = '600 18px Inter,sans-serif';
+            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        } else if (pos.rank < 3) {
+            ctx.font = '600 16px Inter,sans-serif';
+            ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        } else if (pos.rank < 6) {
+            ctx.font = '400 14px Inter,sans-serif';
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
         } else {
             ctx.font = '400 13px Inter,sans-serif';
-            ctx.fillStyle = 'rgba(255,255,255,0.25)';
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
         }
-        ctx.textBaseline = 'top';
         ctx.fillText(formatVal(pos.value), lx, pos.y + 5);
 
         // Rank badge for top 3
@@ -935,7 +976,7 @@ function drawRaceFrame(yearProgress, showNarrative = true) {
     // ── Narrative overlays ──
     if (showNarrative) drawNarratives(yearProgress);
 
-    // ── Bottom progress bar (on-canvas) ──
+    // ── Bottom progress bar ──
     const barY = canvas.height - 100;
     const barL = MARGIN.left + 20;
     const barR = canvas.width - MARGIN.right - 20;
@@ -953,7 +994,6 @@ function drawRaceFrame(yearProgress, showNarrative = true) {
     roundRect(barL, barY, barW * fillFrac, 6, 3);
     ctx.fill();
 
-    // Year markers
     ctx.font = '500 18px Inter,sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.25)';
     ctx.textBaseline = 'top';
@@ -986,7 +1026,6 @@ function drawNarratives(yearProgress) {
         const ph = 56;
         const px = (canvas.width - pw) / 2;
 
-        // Pill bg
         ctx.fillStyle = 'rgba(102,126,234,0.18)';
         roundRect(px, pillY - ph/2, pw, ph, ph/2);
         ctx.fill();
@@ -995,7 +1034,6 @@ function drawNarratives(yearProgress) {
         roundRect(px, pillY - ph/2, pw, ph, ph/2);
         ctx.stroke();
 
-        // Text
         ctx.fillStyle = '#fff';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -1006,7 +1044,7 @@ function drawNarratives(yearProgress) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// PHASE: END — Hold final + CTA
+// PHASE: END
 // ════════════════════════════════════════════════════════════════
 function drawEnd(t) {
     drawRaceFrame(appState.allYears.length - 1, false);
@@ -1017,7 +1055,6 @@ function drawEnd(t) {
 
     const cy = canvas.height - 170;
 
-    // CTA pill
     ctx.font = '700 24px Inter,sans-serif';
     const tw = ctx.measureText(CONFIG.ctaMain).width;
     const pw = tw + 60;
@@ -1036,7 +1073,6 @@ function drawEnd(t) {
     ctx.textBaseline = 'middle';
     ctx.fillText(CONFIG.ctaMain, canvas.width / 2, cy);
 
-    // Sub CTA
     if (t > 0.3) {
         ctx.globalAlpha = ctaAlpha * easeOut(Math.min((t - 0.3) * 2, 1));
         ctx.font = '400 18px Inter,sans-serif';
@@ -1060,7 +1096,6 @@ function drawAtElapsed(ms) {
     const dramEnd = ctxEnd + CONFIG.dramaticDur;
     const raceEnd = dramEnd + totalRaceDuration;
     const holdEnd = raceEnd + CONFIG.endHoldDur;
-    const total = holdEnd + CONFIG.ctaDur;
 
     let phase, yearProgress = 0;
 
@@ -1075,8 +1110,7 @@ function drawAtElapsed(ms) {
         drawDramatic((ms - ctxEnd) / CONFIG.dramaticDur);
     } else if (ms < raceEnd) {
         phase = 'race';
-        const raceMs = ms - dramEnd;
-        yearProgress = raceElapsedToProgress(raceMs);
+        yearProgress = raceElapsedToProgress(ms - dramEnd);
         drawRaceFrame(yearProgress);
     } else {
         phase = 'end';
@@ -1091,11 +1125,7 @@ function drawAtElapsed(ms) {
 // ════════════════════════════════════════════════════════════════
 // ANIMATION CONTROLLER
 // ════════════════════════════════════════════════════════════════
-let animState = {
-    rafId: null,
-    startTs: 0,
-    pausedElapsed: 0,
-};
+let animState = { rafId: null, startTs: 0, pausedElapsed: 0 };
 
 function animTick(ts) {
     if (!appState.isPlaying) return;
@@ -1169,7 +1199,7 @@ function reset() {
     stop();
     animState.pausedElapsed = 0;
     appState.currentYear = appState.allYears[0] || appState.startYear;
-    drawHook(1); // Show completed hook as idle state
+    drawHook(1);
     updateUI();
     progressBarEl.style.width = '0%';
 }
@@ -1324,7 +1354,7 @@ async function loadData() {
         chartContainer.classList.remove('hidden');
         infoBox.classList.add('hidden');
 
-        drawHook(1); // Polished idle state
+        drawHook(1);
         updateUI();
         progressBarEl.style.width = '0%';
     } catch (e) {
