@@ -1,0 +1,27 @@
+{
+  "name": "production-race-visualizer",
+  "version": "1.0.0",
+  "description": "Production Racing Bar Chart Visualizer with Video Export",
+  "private": true,
+  "scripts": {
+    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install && cd ..",
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "backend": "cd backend && npm start",
+    "frontend": "cd frontend && npm start",
+    "build": "cd frontend && npm run build",
+    "start": "npm run backend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "keywords": [
+    "racing",
+    "bar-chart",
+    "visualization",
+    "data",
+    "video-export"
+  ]
+}

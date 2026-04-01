@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎬 Production Racing Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        header p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+
+        .filters-box {
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 250px;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-group select {
+            padding: 12px 15px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: white;
+            font-family: inherit;
+        }
+
+        .filter-group select:hover:not(:disabled) {
+            border-color: #667eea;
+            box-shadow: 0 0 8px rgba(102, 126, 234, 0.1);
+        }
+
+        .filter-group select:focus:not(:disabled) {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .filter-group select:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: #f5f5f5;
+        }
+
+        .year-info {
+            padding: 12px 15px;
+            background-color: #f0f0f0;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .error-message {
+            background-color: #ff6b6b;
+            color: white;
+            padding: 20px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+
+        .info-message {
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #667eea;
+            padding: 40px;
+            text-align: center;
+            border-radius: 8px;
+            font-size: 18px;
+        }
+
+        .chart-box {
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-play {
+            background-color: #667eea;
+            color: white;
+        }
+
+        .btn-play:hover:not(:disabled) {
+            background-color: #5568d3;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn-reset {
+            background-color: #f0ad4e;
+            color: white;
+        }
+
+        .btn-reset:hover:not(:disabled) {
+            background-color: #e59c1e;
+            box-shadow: 0 4px 12px rgba(240, 173, 78, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn-export {
+            background-color: #5cb85c;
+            color: white;
+        }
+
+        .btn-export:hover:not(:disabled) {
+            background-color: #47a447;
+            box-shadow: 0 4px 12px rgba(92, 184, 92, 0.4);
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .progress-info {
+            padding: 12px 20px;
+            background-color: #f0f0f0;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            white-space: nowrap;
+        }
+
+        canvas {
+            width: 100%;
+            height: auto;
+            max-height: 80vh;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto 25px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            transition: width 0.1s linear;
+            width: 0%;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 32px;
+            }
+
+            header p {
+                font-size: 16px;
+            }
+
+            .filters-box {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .filter-group {
+                width: 100%;
+                min-width: unset;
+            }
+
+            .year-info {
+                width: 100%;
+            }
+
+            button {
+                padding: 10px 16px;
+                font-size: 14px;
+            }
+
+            .progress-info {
+                font-size: 14px;
+                padding: 10px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎬 Production Racing Visualizer</h1>
+            <p>Watch countries race for highest production year by year</p>
+        </header>
+
+        <div class="filters-box">
+            <div class="filter-group">
+                <label for="product-select">Product:</label>
+                <select id="product-select">
+                    <option value="">-- Loading products --</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="year-select">Start Year:</label>
+                <select id="year-select" disabled>
+                    <option value="">-- Select Year --</option>
+                </select>
+            </div>
+
+            <div id="year-info" class="year-info" style="display: none;"></div>
+        </div>
+
+        <div id="error-box" class="error-message hidden"></div>
+
+        <div id="chart-container" class="chart-box hidden">
+            <div class="controls">
+                <button id="play-btn" class="btn-play">▶ Play</button>
+                <button id="reset-btn" class="btn-reset">⏹ Reset</button>
+                <button id="export-btn" class="btn-export">💾 Export Video</button>
+                <div class="progress-info" id="progress-info">Year 0 / 0</div>
+            </div>
+            <canvas id="racing-canvas"></canvas>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+        </div>
+
+        <div id="info-box" class="info-message">
+            Select a product and start year above to see the race
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000';
+        let appState = {
+            products: [],
+            selectedProduct: '',
+            selectedStartYear: '',
+            yearRange: { min: null, max: null },
+            allYears: [],
+            data: null,
+            isPlaying: false,
+            currentYear: 0,
+            startYear: 0,
+            endYear: 0,
+            isExporting: false
+        };
+
+        let animationFrameId = null;
+
+        // DOM Elements
+        const productSelect = document.getElementById('product-select');
+        const yearSelect = document.getElementById('year-select');
+        const yearInfo = document.getElementById('year-info');
+        const errorBox = document.getElementById('error-box');
+        const chartContainer = document.getElementById('chart-container');
+        const infoBox = document.getElementById('info-box');
+        const canvas = document.getElementById('racing-canvas');
+        const playBtn = document.getElementById('play-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const exportBtn = document.getElementById('export-btn');
+        const progressInfo = document.getElementById('progress-info');
+        const progressBar = document.getElementById('progress-bar');
+
+        // Initialize canvas size
+        function initCanvas() {
+            canvas.width = 1920;
+            canvas.height = 1080;
+        }
+
+        initCanvas();
+
+        // Fetch products on load
+        async function loadProducts() {
+            try {
+                errorBox.classList.add('hidden');
+                const response = await fetch(`${API_URL}/api/products`);
+                if (!response.ok) throw new Error('Failed to load products');
+                
+                appState.products = await response.json();
+                
+                // Clear and populate select
+                productSelect.innerHTML = '<option value="">-- Select Product --</option>';
+                appState.products.forEach(product => {
+                    const option = document.createElement('option');
+                    option.value = product;
+                    option.textContent = product;
+                    productSelect.appendChild(option);
+                });
+
+                if (appState.products.length > 0) {
+                    appState.selectedProduct = appState.products[0];
+                    productSelect.value = appState.selectedProduct;
+                    loadYearRange(appState.selectedProduct);
+                }
+            } catch (error) {
+                console.error('Error loading products:', error);
+                showError('Failed to load products: ' + error.message);
+            }
+        }
+
+        // Load year range for selected product
+        async function loadYearRange(product) {
+            if (!product) return;
+            
+            try {
+                errorBox.classList.add('hidden');
+                const response = await fetch(`${API_URL}/api/year-range/${encodeURIComponent(product)}`);
+                if (!response.ok) throw new Error('Failed to load year range');
+                
+                const result = await response.json();
+                appState.yearRange = {
+                    min: result.minYear,
+                    max: result.maxYear
+                };
+
+                // Build year options
+                yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
+                for (let year = result.minYear; year <= result.maxYear; year++) {
+                    const option = document.createElement('option');
+                    option.value = year;
+                    option.textContent = year;
+                    yearSelect.appendChild(option);
+                }
+
+                yearSelect.disabled = false;
+                
+                if (result.minYear) {
+                    appState.selectedStartYear = result.minYear.toString();
+                    yearSelect.value = appState.selectedStartYear;
+                    updateYearInfo();
+                    loadData();
+                }
+            } catch (error) {
+                console.error('Error loading year range:', error);
+                showError('Failed to load year range: ' + error.message);
+            }
+        }
+
+        // Update year info display
+        function updateYearInfo() {
+            if (appState.yearRange.min && appState.yearRange.max && appState.selectedStartYear) {
+                const yearCount = appState.yearRange.max - parseInt(appState.selectedStartYear) + 1;
+                yearInfo.textContent = `Available: ${appState.yearRange.min} - ${appState.yearRange.max} (${yearCount} years)`;
+                yearInfo.style.display = 'block';
+            }
+        }
+
+        // Load data for selected product and year range
+        async function loadData() {
+            if (!appState.selectedProduct || !appState.selectedStartYear) return;
+
+            try {
+                errorBox.classList.add('hidden');
+                const response = await fetch(
+                    `${API_URL}/api/data?product=${encodeURIComponent(appState.selectedProduct)}&startYear=${appState.selectedStartYear}&endYear=${appState.yearRange.max}`
+                );
+                if (!response.ok) throw new Error('Failed to load data');
+                
+                appState.data = await response.json();
+                appState.startYear = parseInt(appState.selectedStartYear);
+                appState.endYear = appState.yearRange.max;
+                appState.currentYear = appState.startYear;
+                appState.allYears = Object.keys(appState.data.data)
+                    .map(y => parseInt(y))
+                    .sort((a, b) => a - b);
+
+                // Show chart
+                chartContainer.classList.remove('hidden');
+                infoBox.classList.add('hidden');
+                
+                // Draw initial frame
+                drawChart(appState.currentYear);
+                updateProgressInfo();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showError('Failed to load data: ' + error.message);
+            }
+        }
+
+        // Draw the racing chart
+        function drawChart(year) {
+            const ctx = canvas.getContext('2d');
+            const yearData = appState.data.data[year];
+
+            if (!yearData) return;
+
+            // Clear canvas
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Dimensions
+            const margin = { top: 80, right: 200, bottom: 40, left: 200 };
+            const chartWidth = canvas.width - margin.left - margin.right;
+            const chartHeight = canvas.height - margin.top - margin.bottom;
+            const barHeight = chartHeight / 10;
+
+            // Draw background
+            ctx.fillStyle = '#f8f9fa';
+            ctx.fillRect(margin.left, margin.top, chartWidth, chartHeight);
+
+            // Draw title
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 72px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(year, margin.left + 20, margin.top - 20);
+
+            // Draw product name
+            ctx.font = '20px Arial';
+            ctx.fillStyle = '#666';
+            ctx.fillText(`Product: ${appState.selectedProduct}`, margin.left + 20, margin.top - 20 - 72 - 10);
+
+            // Sort data and get top 10
+            const sortedData = [...yearData].sort((a, b) => b.value - a.value).slice(0, 10);
+            const maxValue = Math.max(...sortedData.map(d => d.value));
+
+            // Color palette
+            const colors = [
+                '#667eea', '#764ba2', '#f093fb', '#4facfe', '#00f2fe',
+                '#43e97b', '#38f9d7', '#fa709a', '#fee140', '#30cfd0'
+            ];
+
+            // Draw bars
+            sortedData.forEach((item, index) => {
+                const barWidth = (item.value / maxValue) * chartWidth;
+                const y = margin.top + index * barHeight;
+
+                // Draw bar
+                ctx.fillStyle = colors[index % colors.length];
+                ctx.fillRect(margin.left, y + 5, barWidth, barHeight - 10);
+
+                // Draw country name
+                ctx.fillStyle = '#000';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'right';
+                ctx.fillText(item.area, margin.left - 10, y + barHeight / 2 + 6);
+
+                // Draw value
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillStyle = '#000';
+                ctx.fillText(
+                    item.value.toLocaleString(),
+                    margin.left + barWidth + 10,
+                    y + barHeight / 2 + 6
+                );
+            });
+
+            // Draw rank numbers
+            sortedData.forEach((_, index) => {
+                const y = margin.top + index * barHeight;
+                ctx.fillStyle = '#999';
+                ctx.font = 'bold 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`#${index + 1}`, margin.left - 40, y + barHeight / 2 + 6);
+            });
+        }
+
+        // Animation loop
+        function animate() {
+            if (!appState.isPlaying) return;
+
+            appState.currentYear += 1;
+            if (appState.currentYear > appState.endYear) {
+                appState.currentYear = appState.endYear;
+                appState.isPlaying = false;
+            } else {
+                drawChart(appState.currentYear);
+                updateProgressInfo();
+                updateProgressBar();
+            }
+        }
+
+        // Update progress info
+        function updateProgressInfo() {
+            progressInfo.textContent = `Year ${appState.currentYear} / ${appState.endYear}`;
+        }
+
+        // Update progress bar
+        function updateProgressBar() {
+            const total = appState.endYear - appState.startYear + 1;
+            const current = appState.currentYear - appState.startYear;
+            const percentage = (current / total) * 100;
+            progressBar.style.width = percentage + '%';
+        }
+
+        // Play animation
+        function play() {
+            if (appState.isPlaying) return;
+            appState.isPlaying = true;
+            playBtn.disabled = true;
+            resetBtn.disabled = true;
+            exportBtn.disabled = true;
+
+            const interval = setInterval(() => {
+                animate();
+                if (!appState.isPlaying) {
+                    clearInterval(interval);
+                    playBtn.disabled = false;
+                    resetBtn.disabled = false;
+                    exportBtn.disabled = false;
+                }
+            }, 500); // 0.5 seconds per year
+        }
+
+        // Reset animation
+        function reset() {
+            appState.isPlaying = false;
+            appState.currentYear = appState.startYear;
+            drawChart(appState.currentYear);
+            updateProgressInfo();
+            updateProgressBar();
+        }
+
+        // Export video
+        async function exportVideo() {
+            if (appState.isExporting) return;
+            
+            appState.isExporting = true;
+            exportBtn.disabled = true;
+            exportBtn.textContent = '⏳ Exporting...';
+
+            try {
+                console.log('Capturing frames...');
+                const frames = [];
+
+                for (let year of appState.allYears) {
+                    drawChart(year);
+                    frames.push(canvas.toDataURL('image/png'));
+                    console.log(`Captured frame for year ${year}`);
+                }
+
+                console.log(`Sending ${frames.length} frames to backend...`);
+                
+                const response = await fetch(`${API_URL}/api/encode-video`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        frames,
+                        fps: 30,
+                        product: appState.selectedProduct,
+                        startYear: appState.startYear
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Video encoding failed');
+                }
+
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.error || 'Video encoding failed');
+                }
+
+                console.log('Video encoded, downloading...');
+                
+                // Trigger download
+                const downloadLink = document.createElement('a');
+                downloadLink.href = `${API_URL}${result.downloadUrl}`;
+                downloadLink.download = `${appState.selectedProduct.replace(/\s+/g, '_')}_${appState.startYear}.mp4`;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+
+                alert('✅ Video exported successfully!');
+            } catch (error) {
+                console.error('Export failed:', error);
+                showError('Export failed: ' + error.message);
+            } finally {
+                appState.isExporting = false;
+                exportBtn.disabled = false;
+                exportBtn.textContent = '💾 Export Video';
+            }
+        }
+
+        // Show error
+        function showError(message) {
+            errorBox.textContent = message;
+            errorBox.classList.remove('hidden');
+        }
+
+        // Event listeners
+        productSelect.addEventListener('change', (e) => {
+            appState.selectedProduct = e.target.value;
+            if (appState.selectedProduct) {
+                loadYearRange(appState.selectedProduct);
+            }
+        });
+
+        yearSelect.addEventListener('change', (e) => {
+            appState.selectedStartYear = e.target.value;
+            if (appState.selectedStartYear) {
+                updateYearInfo();
+                loadData();
+            }
+        });
+
+        playBtn.addEventListener('click', play);
+        resetBtn.addEventListener('click', reset);
+        exportBtn.addEventListener('click', exportVideo);
+
+        // Initialize
+        loadProducts();
+    </script>
+</body>
+</html>

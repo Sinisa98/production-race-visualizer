@@ -1,0 +1,20 @@
+{
+  "name": "production-race-backend",
+  "version": "1.0.0",
+  "description": "Backend for production racing bar chart visualizer",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2",
+    "fluent-ffmpeg": "^2.1.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "production-race-frontend",
+  "version": "1.0.0",
+  "description": "Static HTML/CSS/JS frontend for production racing visualizer",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

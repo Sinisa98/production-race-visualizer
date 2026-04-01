@@ -1,0 +1,118 @@
+.racing-chart-container {
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.controls {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 25px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.control-btn {
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.play-btn {
+  background-color: #667eea;
+  color: white;
+}
+
+.play-btn:hover:not(:disabled) {
+  background-color: #5568d3;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  transform: translateY(-2px);
+}
+
+.reset-btn {
+  background-color: #f0ad4e;
+  color: white;
+}
+
+.reset-btn:hover:not(:disabled) {
+  background-color: #e59c1e;
+  box-shadow: 0 4px 12px rgba(240, 173, 78, 0.4);
+  transform: translateY(-2px);
+}
+
+.export-btn {
+  background-color: #5cb85c;
+  color: white;
+}
+
+.export-btn:hover:not(:disabled) {
+  background-color: #47a447;
+  box-shadow: 0 4px 12px rgba(92, 184, 92, 0.4);
+  transform: translateY(-2px);
+}
+
+.control-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.progress-info {
+  padding: 12px 20px;
+  background-color: #f0f0f0;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+}
+
+.racing-canvas {
+  width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 25px;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 8px;
+  background-color: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(to right, #667eea, #764ba2);
+  transition: width 0.1s linear;
+}
+
+@media (max-width: 768px) {
+  .racing-chart-container {
+    padding: 20px;
+  }
+
+  .controls {
+    gap: 10px;
+  }
+
+  .control-btn {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  .progress-info {
+    font-size: 14px;
+    padding: 10px 15px;
+  }
+}
