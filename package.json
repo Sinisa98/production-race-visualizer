@@ -4,6 +4,7 @@
   "description": "Production Racing Bar Chart Visualizer with Video Export",
   "private": true,
   "scripts": {
+    "postinstall": "cd backend && npm install && cd ../frontend && npm install && cd ..",
     "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install && cd ..",
     "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
     "backend": "cd backend && npm start",
