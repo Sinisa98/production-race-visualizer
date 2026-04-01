@@ -499,12 +499,16 @@
                 // Preload flag images
                 await preloadFlags(appState.data.data);
 
+                // Compute rank history for the racing line chart
+                computeRankHistory();
+                animState.yearIndex = 0;
+
                 // Show chart
                 chartContainer.classList.remove('hidden');
                 infoBox.classList.add('hidden');
 
                 // Draw initial frame
-                drawChart(appState.currentYear);
+                drawChart(0);
                 updateProgressInfo();
             } catch (error) {
                 console.error('Error loading data:', error);
@@ -512,110 +516,344 @@
             }
         }
 
-        // Draw the racing chart
-        function drawChart(year) {
-            const ctx = canvas.getContext('2d');
-            const yearData = appState.data.data[year];
+        // ============================================================
+        // RACING LINE CHART
+        // ============================================================
 
-            if (!yearData) return;
+        // Persistent color assignment per country
+        const countryColors = {};
+        const colorPalette = [
+            '#667eea', '#e6194b', '#3cb44b', '#ffe119', '#4363d8',
+            '#f58231', '#911eb4', '#42d4f4', '#f032e6', '#bfef45',
+            '#fabed4', '#469990', '#dcbeff', '#9A6324', '#800000',
+            '#aaffc3', '#808000', '#ffd8b1', '#000075', '#a9a9a9'
+        ];
+        let colorIndex = 0;
 
-            // Clear canvas
-            ctx.fillStyle = '#fff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Dimensions
-            const margin = { top: 80, right: 200, bottom: 40, left: 200 };
-            const chartWidth = canvas.width - margin.left - margin.right;
-            const chartHeight = canvas.height - margin.top - margin.bottom;
-            const barHeight = chartHeight / 10;
-
-            // Draw background
-            ctx.fillStyle = '#f8f9fa';
-            ctx.fillRect(margin.left, margin.top, chartWidth, chartHeight);
-
-            // Draw title
-            ctx.fillStyle = '#000';
-            ctx.font = 'bold 72px Arial';
-            ctx.textAlign = 'left';
-            ctx.fillText(year, margin.left + 20, margin.top - 20);
-
-            // Draw product name
-            ctx.font = '20px Arial';
-            ctx.fillStyle = '#666';
-            ctx.fillText(`Product: ${appState.selectedProduct}`, margin.left + 20, margin.top - 20 - 72 - 10);
-
-            // Sort data and get top 10
-            const sortedData = [...yearData].sort((a, b) => b.value - a.value).slice(0, 10);
-            const maxValue = Math.max(...sortedData.map(d => d.value));
-
-            // Color palette
-            const colors = [
-                '#667eea', '#764ba2', '#f093fb', '#4facfe', '#00f2fe',
-                '#43e97b', '#38f9d7', '#fa709a', '#fee140', '#30cfd0'
-            ];
-
-            // Draw bars
-            sortedData.forEach((item, index) => {
-                const barWidth = (item.value / maxValue) * chartWidth;
-                const y = margin.top + index * barHeight;
-
-                // Draw bar
-                ctx.fillStyle = colors[index % colors.length];
-                ctx.fillRect(margin.left, y + 5, barWidth, barHeight - 10);
-
-                // Draw flag image + country name
-                const iso2 = item.iso2 ? item.iso2.toLowerCase() : null;
-                const flagImg = iso2 ? flagCache[iso2] : null;
-                ctx.textAlign = 'right';
-                if (flagImg) {
-                    const flagH = barHeight - 16;
-                    const flagW = flagH * 1.5;
-                    const flagX = margin.left - flagW - 8;
-                    const flagY = y + 8;
-                    ctx.drawImage(flagImg, flagX, flagY, flagW, flagH);
-                    ctx.fillStyle = '#000';
-                    ctx.font = 'bold 14px Arial';
-                    ctx.fillText(item.area, flagX - 8, y + barHeight / 2 + 6);
-                } else {
-                    ctx.fillStyle = '#000';
-                    ctx.font = 'bold 16px Arial';
-                    ctx.fillText(item.area, margin.left - 10, y + barHeight / 2 + 6);
-                }
-
-                // Draw value
-                ctx.font = '14px Arial';
-                ctx.textAlign = 'left';
-                ctx.fillStyle = '#000';
-                ctx.fillText(
-                    item.value.toLocaleString(),
-                    margin.left + barWidth + 10,
-                    y + barHeight / 2 + 6
-                );
-            });
-
-            // Draw rank numbers
-            sortedData.forEach((_, index) => {
-                const y = margin.top + index * barHeight;
-                ctx.fillStyle = '#999';
-                ctx.font = 'bold 20px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText(`#${index + 1}`, margin.left - 40, y + barHeight / 2 + 6);
-            });
+        function getCountryColor(area) {
+            if (!countryColors[area]) {
+                countryColors[area] = colorPalette[colorIndex % colorPalette.length];
+                colorIndex++;
+            }
+            return countryColors[area];
         }
 
-        // Animation loop
-        function animate() {
+        // Pre-compute rank history: { countryName: [{ year, rank, value, iso2 }] }
+        let rankHistory = {};
+        let allCountriesInRace = [];
+
+        function computeRankHistory() {
+            rankHistory = {};
+            const data = appState.data.data;
+
+            for (const year of appState.allYears) {
+                const yearData = data[year];
+                if (!yearData) continue;
+
+                const sorted = [...yearData].sort((a, b) => b.value - a.value).slice(0, 10);
+                sorted.forEach((item, index) => {
+                    if (!rankHistory[item.area]) {
+                        rankHistory[item.area] = [];
+                    }
+                    rankHistory[item.area].push({
+                        year: parseInt(year),
+                        rank: index,
+                        value: item.value,
+                        iso2: item.iso2 || null
+                    });
+                });
+            }
+
+            // Collect all countries that ever appeared in top 10
+            allCountriesInRace = Object.keys(rankHistory);
+            // Assign colors
+            allCountriesInRace.forEach(c => getCountryColor(c));
+        }
+
+        // Chart layout constants
+        const MARGIN = { top: 120, right: 100, bottom: 80, left: 60 };
+        const CIRCLE_RADIUS = 35;
+        const TRANSITION_MS = 500;
+        const FPS = 60;
+
+        // Animation state
+        let animState = {
+            yearIndex: 0,         // index into allYears
+            transitioning: false,
+            transitionStart: 0,
+            fromPositions: {},    // country -> rank (number)
+            toPositions: {},      // country -> rank (number)
+            rafId: null,
+        };
+
+        // Get Y position for a rank (0-9)
+        function rankToY(rank) {
+            const chartHeight = canvas.height - MARGIN.top - MARGIN.bottom;
+            const spacing = chartHeight / 10;
+            return MARGIN.top + rank * spacing + spacing / 2;
+        }
+
+        // Get X position for a year index in the visible window
+        function yearToX(yearIdx, currentYearIdx, visibleYears) {
+            const chartWidth = canvas.width - MARGIN.left - MARGIN.right;
+            const rightEdge = MARGIN.left + chartWidth - CIRCLE_RADIUS - 10;
+            const leftEdge = MARGIN.left + 10;
+            const availableWidth = rightEdge - leftEdge;
+
+            if (visibleYears <= 1) return rightEdge;
+
+            const offset = currentYearIdx - yearIdx;
+            const maxVisible = Math.min(visibleYears, currentYearIdx + 1);
+            const x = rightEdge - (offset / Math.max(maxVisible - 1, 1)) * availableWidth;
+            return x;
+        }
+
+        // Easing function (ease-in-out cubic)
+        function easeInOutCubic(t) {
+            return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        }
+
+        // Draw a single frame of the racing line chart
+        function drawRaceFrame(t) {
+            const ctx = canvas.getContext('2d');
+            const currentYearIdx = animState.yearIndex;
+            const visibleYears = Math.min(20, currentYearIdx + 1);
+            const startVisibleIdx = Math.max(0, currentYearIdx - visibleYears + 1);
+
+            // Clear
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const chartWidth = canvas.width - MARGIN.left - MARGIN.right;
+            const chartHeight = canvas.height - MARGIN.top - MARGIN.bottom;
+
+            // Draw title
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 36px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(`${appState.selectedProduct}`, MARGIN.left, 50);
+
+            // Draw current year (big)
+            ctx.font = 'bold 64px Arial';
+            ctx.textAlign = 'right';
+            ctx.fillStyle = 'rgba(255,255,255,0.9)';
+            const displayYear = appState.allYears[currentYearIdx];
+            ctx.fillText(displayYear, canvas.width - MARGIN.right, 70);
+
+            // Draw rank labels on left
+            ctx.textAlign = 'right';
+            ctx.font = '16px Arial';
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            for (let r = 0; r < 10; r++) {
+                const y = rankToY(r);
+                ctx.fillText(`#${r + 1}`, MARGIN.left - 15, y + 5);
+                // Horizontal guide line
+                ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(MARGIN.left, y);
+                ctx.lineTo(canvas.width - MARGIN.right, y);
+                ctx.stroke();
+            }
+
+            // Draw year labels at bottom
+            ctx.textAlign = 'center';
+            ctx.font = '14px Arial';
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            for (let i = startVisibleIdx; i <= currentYearIdx; i++) {
+                const x = yearToX(i, currentYearIdx, visibleYears);
+                ctx.fillText(appState.allYears[i], x, canvas.height - MARGIN.bottom + 25);
+                // Vertical guide line
+                ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x, MARGIN.top);
+                ctx.lineTo(x, canvas.height - MARGIN.bottom);
+                ctx.stroke();
+            }
+
+            // For each country, draw trail line + circle
+            for (const country of allCountriesInRace) {
+                const history = rankHistory[country];
+                if (!history) continue;
+
+                const color = getCountryColor(country);
+
+                // Build points for this country within visible range
+                const points = [];
+                for (let i = startVisibleIdx; i <= currentYearIdx; i++) {
+                    const yearVal = appState.allYears[i];
+                    const entry = history.find(h => h.year === yearVal);
+                    if (entry) {
+                        let y = rankToY(entry.rank);
+
+                        // If this is the last point and we're transitioning, interpolate Y
+                        if (i === currentYearIdx && animState.transitioning) {
+                            const fromRank = animState.fromPositions[country];
+                            const toRank = animState.toPositions[country];
+                            if (fromRank !== undefined && toRank !== undefined) {
+                                const fromY = rankToY(fromRank);
+                                const toY = rankToY(toRank);
+                                y = fromY + (toY - fromY) * t;
+                            }
+                        }
+
+                        points.push({
+                            x: yearToX(i, currentYearIdx, visibleYears),
+                            y: y,
+                            entry: entry
+                        });
+                    }
+                }
+
+                if (points.length === 0) continue;
+
+                // Draw trail line
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                ctx.lineJoin = 'round';
+                ctx.lineCap = 'round';
+                ctx.globalAlpha = 0.6;
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
+                for (let p = 1; p < points.length; p++) {
+                    ctx.lineTo(points[p].x, points[p].y);
+                }
+                ctx.stroke();
+                ctx.globalAlpha = 1.0;
+
+                // Draw circle at the latest point (right edge)
+                const lastPoint = points[points.length - 1];
+                const iso2 = lastPoint.entry.iso2 ? lastPoint.entry.iso2.toLowerCase() : null;
+                const flagImg = iso2 ? flagCache[iso2] : null;
+
+                // Circle background
+                ctx.beginPath();
+                ctx.arc(lastPoint.x, lastPoint.y, CIRCLE_RADIUS, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Flag or text inside circle
+                if (flagImg) {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(lastPoint.x, lastPoint.y, CIRCLE_RADIUS - 3, 0, Math.PI * 2);
+                    ctx.clip();
+                    const imgSize = (CIRCLE_RADIUS - 3) * 2;
+                    ctx.drawImage(flagImg, lastPoint.x - imgSize / 2, lastPoint.y - imgSize / 2, imgSize, imgSize);
+                    ctx.restore();
+                } else {
+                    // Draw country name text inside circle
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 11px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    // Split long names
+                    const words = country.split(' ');
+                    if (words.length <= 2 && country.length <= 12) {
+                        ctx.fillText(country, lastPoint.x, lastPoint.y);
+                    } else {
+                        const abbrev = country.substring(0, 10) + (country.length > 10 ? '.' : '');
+                        ctx.fillText(abbrev, lastPoint.x, lastPoint.y);
+                    }
+                    ctx.textBaseline = 'alphabetic';
+                }
+
+                // Draw value next to circle
+                ctx.fillStyle = '#fff';
+                ctx.font = '13px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText(
+                    lastPoint.entry.value.toLocaleString(),
+                    lastPoint.x + CIRCLE_RADIUS + 8,
+                    lastPoint.y + 5
+                );
+            }
+        }
+
+        // Draw static frame for a given year index (no transition)
+        function drawChart(yearIndex) {
+            animState.yearIndex = yearIndex;
+            animState.transitioning = false;
+            drawRaceFrame(1);
+        }
+
+        // Smooth animation loop using requestAnimationFrame
+        function animationTick(timestamp) {
             if (!appState.isPlaying) return;
 
-            appState.currentYear += 1;
-            if (appState.currentYear > appState.endYear) {
-                appState.currentYear = appState.endYear;
-                appState.isPlaying = false;
+            if (animState.transitioning) {
+                const elapsed = timestamp - animState.transitionStart;
+                const rawT = Math.min(elapsed / TRANSITION_MS, 1);
+                const t = easeInOutCubic(rawT);
+
+                drawRaceFrame(t);
+
+                if (rawT >= 1) {
+                    // Transition complete — move to next year
+                    animState.transitioning = false;
+                    animState.yearIndex++;
+
+                    if (animState.yearIndex >= appState.allYears.length) {
+                        animState.yearIndex = appState.allYears.length - 1;
+                        appState.isPlaying = false;
+                        appState.currentYear = appState.allYears[animState.yearIndex];
+                        updateProgressInfo();
+                        updateProgressBar();
+                        playBtn.disabled = false;
+                        stopBtn.disabled = true;
+                        resetBtn.disabled = false;
+                        exportBtn.disabled = false;
+                        return;
+                    }
+
+                    appState.currentYear = appState.allYears[animState.yearIndex];
+                    updateProgressInfo();
+                    updateProgressBar();
+
+                    // Start next transition
+                    startTransition(timestamp);
+                }
+
+                animState.rafId = requestAnimationFrame(animationTick);
             } else {
-                drawChart(appState.currentYear);
-                updateProgressInfo();
-                updateProgressBar();
+                startTransition(timestamp);
+                animState.rafId = requestAnimationFrame(animationTick);
             }
+        }
+
+        function startTransition(timestamp) {
+            const prevYearIdx = Math.max(0, animState.yearIndex - 1);
+            const currYearIdx = animState.yearIndex;
+            const prevYear = appState.allYears[prevYearIdx];
+            const currYear = appState.allYears[currYearIdx];
+            const data = appState.data.data;
+
+            // Compute from/to positions
+            animState.fromPositions = {};
+            animState.toPositions = {};
+
+            if (data[prevYear]) {
+                const sorted = [...data[prevYear]].sort((a, b) => b.value - a.value).slice(0, 10);
+                sorted.forEach((item, idx) => { animState.fromPositions[item.area] = idx; });
+            }
+            if (data[currYear]) {
+                const sorted = [...data[currYear]].sort((a, b) => b.value - a.value).slice(0, 10);
+                sorted.forEach((item, idx) => { animState.toPositions[item.area] = idx; });
+            }
+
+            // Countries new to top 10 start from their target position
+            for (const c of Object.keys(animState.toPositions)) {
+                if (animState.fromPositions[c] === undefined) {
+                    animState.fromPositions[c] = animState.toPositions[c];
+                }
+            }
+
+            animState.transitioning = true;
+            animState.transitionStart = timestamp;
         }
 
         // Update progress info
@@ -636,8 +874,9 @@
         // Play animation
         function play() {
             if (appState.isPlaying) return;
-            if (appState.currentYear >= appState.endYear) {
-                appState.currentYear = appState.startYear;
+            if (animState.yearIndex >= appState.allYears.length - 1) {
+                animState.yearIndex = 0;
+                appState.currentYear = appState.allYears[0];
             }
             appState.isPlaying = true;
             playBtn.disabled = true;
@@ -645,26 +884,17 @@
             resetBtn.disabled = true;
             exportBtn.disabled = true;
 
-            playInterval = setInterval(() => {
-                animate();
-                if (!appState.isPlaying) {
-                    clearInterval(playInterval);
-                    playInterval = null;
-                    playBtn.disabled = false;
-                    stopBtn.disabled = true;
-                    resetBtn.disabled = false;
-                    exportBtn.disabled = false;
-                }
-            }, 500);
+            animState.rafId = requestAnimationFrame(animationTick);
         }
 
         // Stop animation
         function stop() {
             appState.isPlaying = false;
-            if (playInterval) {
-                clearInterval(playInterval);
-                playInterval = null;
+            if (animState.rafId) {
+                cancelAnimationFrame(animState.rafId);
+                animState.rafId = null;
             }
+            animState.transitioning = false;
             playBtn.disabled = false;
             stopBtn.disabled = true;
             resetBtn.disabled = false;
@@ -674,16 +904,17 @@
         // Reset animation
         function reset() {
             stop();
-            appState.currentYear = appState.startYear;
-            drawChart(appState.currentYear);
+            animState.yearIndex = 0;
+            appState.currentYear = appState.allYears[0];
+            drawChart(0);
             updateProgressInfo();
             updateProgressBar();
         }
 
-        // Export video
+        // Export video — capture each year as a frame
         async function exportVideo() {
             if (appState.isExporting) return;
-            
+
             appState.isExporting = true;
             exportBtn.disabled = true;
             exportBtn.textContent = '⏳ Exporting...';
@@ -692,14 +923,14 @@
                 console.log('Capturing frames...');
                 const frames = [];
 
-                for (let year of appState.allYears) {
-                    drawChart(year);
+                for (let i = 0; i < appState.allYears.length; i++) {
+                    drawChart(i);
                     frames.push(canvas.toDataURL('image/png'));
-                    console.log(`Captured frame for year ${year}`);
+                    console.log(`Captured frame for year ${appState.allYears[i]}`);
                 }
 
                 console.log(`Sending ${frames.length} frames to backend...`);
-                
+
                 const response = await fetch(`${API_URL}/api/encode-video`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -717,14 +948,13 @@
                 }
 
                 const result = await response.json();
-                
+
                 if (!result.success) {
                     throw new Error(result.error || 'Video encoding failed');
                 }
 
                 console.log('Video encoded, downloading...');
-                
-                // Trigger download
+
                 const downloadLink = document.createElement('a');
                 downloadLink.href = `${API_URL}${result.downloadUrl}`;
                 downloadLink.download = `${appState.selectedProduct.replace(/\s+/g, '_')}_${appState.startYear}.mp4`;
