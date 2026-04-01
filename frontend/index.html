@@ -538,51 +538,48 @@
             return countryColors[area];
         }
 
-        // Pre-compute rank history: { countryName: [{ year, rank, value, iso2 }] }
-        let rankHistory = {};
+        // Pre-compute rank history per year: { year: [{ area, rank, value, iso2 }] }
+        let rankByYear = {};
         let allCountriesInRace = [];
 
         function computeRankHistory() {
-            rankHistory = {};
+            rankByYear = {};
             const data = appState.data.data;
+            const countriesSeen = new Set();
 
             for (const year of appState.allYears) {
                 const yearData = data[year];
                 if (!yearData) continue;
 
                 const sorted = [...yearData].sort((a, b) => b.value - a.value).slice(0, 10);
-                sorted.forEach((item, index) => {
-                    if (!rankHistory[item.area]) {
-                        rankHistory[item.area] = [];
-                    }
-                    rankHistory[item.area].push({
-                        year: parseInt(year),
+                rankByYear[year] = sorted.map((item, index) => {
+                    countriesSeen.add(item.area);
+                    return {
+                        area: item.area,
                         rank: index,
                         value: item.value,
                         iso2: item.iso2 || null
-                    });
+                    };
                 });
             }
 
-            // Collect all countries that ever appeared in top 10
-            allCountriesInRace = Object.keys(rankHistory);
-            // Assign colors
+            allCountriesInRace = [...countriesSeen];
             allCountriesInRace.forEach(c => getCountryColor(c));
         }
 
         // Chart layout constants
-        const MARGIN = { top: 120, right: 100, bottom: 80, left: 60 };
-        const CIRCLE_RADIUS = 35;
+        const MARGIN = { top: 100, right: 160, bottom: 60, left: 80 };
+        const CIRCLE_RADIUS = 32;
         const TRANSITION_MS = 500;
-        const FPS = 60;
 
         // Animation state
         let animState = {
-            yearIndex: 0,         // index into allYears
+            yearIndex: 0,
             transitioning: false,
             transitionStart: 0,
-            fromPositions: {},    // country -> rank (number)
-            toPositions: {},      // country -> rank (number)
+            fromPositions: {},   // country -> { rank, value, iso2 }
+            toPositions: {},     // country -> { rank, value, iso2 }
+            exitingCountries: {},// country -> { fromRank, iso2 } — countries leaving top 10
             rafId: null,
         };
 
@@ -593,127 +590,131 @@
             return MARGIN.top + rank * spacing + spacing / 2;
         }
 
-        // Get X position for a year index in the visible window
-        function yearToX(yearIdx, currentYearIdx, visibleYears) {
-            const chartWidth = canvas.width - MARGIN.left - MARGIN.right;
-            const rightEdge = MARGIN.left + chartWidth - CIRCLE_RADIUS - 10;
-            const leftEdge = MARGIN.left + 10;
-            const availableWidth = rightEdge - leftEdge;
-
-            if (visibleYears <= 1) return rightEdge;
-
-            const offset = currentYearIdx - yearIdx;
-            const maxVisible = Math.min(visibleYears, currentYearIdx + 1);
-            const x = rightEdge - (offset / Math.max(maxVisible - 1, 1)) * availableWidth;
-            return x;
+        // Get X position: circles move from left edge to right edge over the full race
+        function getXForProgress(progress) {
+            const leftEdge = MARGIN.left + CIRCLE_RADIUS + 10;
+            const rightEdge = canvas.width - MARGIN.right - CIRCLE_RADIUS - 10;
+            return leftEdge + progress * (rightEdge - leftEdge);
         }
 
-        // Easing function (ease-in-out cubic)
+        // Easing function
         function easeInOutCubic(t) {
             return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
         }
 
-        // Draw a single frame of the racing line chart
+        // Draw a circle with flag or text
+        function drawCountryCircle(ctx, x, y, country, iso2, color, alpha) {
+            ctx.globalAlpha = alpha;
+            const flagImg = iso2 ? flagCache[iso2.toLowerCase()] : null;
+
+            // Circle background
+            ctx.beginPath();
+            ctx.arc(x, y, CIRCLE_RADIUS, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Flag or text
+            if (flagImg) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(x, y, CIRCLE_RADIUS - 3, 0, Math.PI * 2);
+                ctx.clip();
+                const imgSize = (CIRCLE_RADIUS - 3) * 2;
+                ctx.drawImage(flagImg, x - imgSize / 2, y - imgSize / 2, imgSize, imgSize);
+                ctx.restore();
+                // Restore alpha after save/restore
+                ctx.globalAlpha = alpha;
+            } else {
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 11px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const label = country.length <= 12 ? country : country.substring(0, 10) + '.';
+                ctx.fillText(label, x, y);
+                ctx.textBaseline = 'alphabetic';
+            }
+
+            ctx.globalAlpha = 1.0;
+        }
+
+        // Draw a single frame
         function drawRaceFrame(t) {
             const ctx = canvas.getContext('2d');
             const currentYearIdx = animState.yearIndex;
-            const visibleYears = Math.min(20, currentYearIdx + 1);
-            const startVisibleIdx = Math.max(0, currentYearIdx - visibleYears + 1);
+            const totalYears = appState.allYears.length;
 
             // Clear
             ctx.fillStyle = '#1a1a2e';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            const chartWidth = canvas.width - MARGIN.left - MARGIN.right;
-            const chartHeight = canvas.height - MARGIN.top - MARGIN.bottom;
-
             // Draw title
             ctx.fillStyle = '#fff';
             ctx.font = 'bold 36px Arial';
             ctx.textAlign = 'left';
-            ctx.fillText(`${appState.selectedProduct}`, MARGIN.left, 50);
+            ctx.fillText(appState.selectedProduct, MARGIN.left, 45);
 
             // Draw current year (big)
             ctx.font = 'bold 64px Arial';
             ctx.textAlign = 'right';
             ctx.fillStyle = 'rgba(255,255,255,0.9)';
             const displayYear = appState.allYears[currentYearIdx];
-            ctx.fillText(displayYear, canvas.width - MARGIN.right, 70);
+            ctx.fillText(displayYear, canvas.width - 30, 65);
 
-            // Draw rank labels on left
-            ctx.textAlign = 'right';
-            ctx.font = '16px Arial';
-            ctx.fillStyle = 'rgba(255,255,255,0.4)';
-            for (let r = 0; r < 10; r++) {
-                const y = rankToY(r);
-                ctx.fillText(`#${r + 1}`, MARGIN.left - 15, y + 5);
-                // Horizontal guide line
-                ctx.strokeStyle = 'rgba(255,255,255,0.07)';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(MARGIN.left, y);
-                ctx.lineTo(canvas.width - MARGIN.right, y);
-                ctx.stroke();
-            }
+            // X progress: how far through the race we are (0 to 1)
+            // During transition, interpolate between previous and current year's x
+            const baseProgress = currentYearIdx / Math.max(totalYears - 1, 1);
+            const prevProgress = Math.max(0, (currentYearIdx - 1)) / Math.max(totalYears - 1, 1);
+            const xProgress = animState.transitioning
+                ? prevProgress + (baseProgress - prevProgress) * t
+                : baseProgress;
+            const currentX = getXForProgress(xProgress);
 
-            // Draw year labels at bottom
-            ctx.textAlign = 'center';
-            ctx.font = '14px Arial';
-            ctx.fillStyle = 'rgba(255,255,255,0.5)';
-            for (let i = startVisibleIdx; i <= currentYearIdx; i++) {
-                const x = yearToX(i, currentYearIdx, visibleYears);
-                ctx.fillText(appState.allYears[i], x, canvas.height - MARGIN.bottom + 25);
-                // Vertical guide line
-                ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(x, MARGIN.top);
-                ctx.lineTo(x, canvas.height - MARGIN.bottom);
-                ctx.stroke();
-            }
+            // Build trail data: for each country, collect historical points
+            // We need to know each country's rank at each past year
+            const trails = {}; // country -> [{ x, y }]
 
-            // For each country, draw trail line + circle
-            for (const country of allCountriesInRace) {
-                const history = rankHistory[country];
-                if (!history) continue;
+            for (let i = 0; i <= currentYearIdx; i++) {
+                const year = appState.allYears[i];
+                const entries = rankByYear[year];
+                if (!entries) continue;
 
-                const color = getCountryColor(country);
+                const yearProgress = i / Math.max(totalYears - 1, 1);
+                const x = getXForProgress(yearProgress);
 
-                // Build points for this country within visible range
-                const points = [];
-                for (let i = startVisibleIdx; i <= currentYearIdx; i++) {
-                    const yearVal = appState.allYears[i];
-                    const entry = history.find(h => h.year === yearVal);
-                    if (entry) {
-                        let y = rankToY(entry.rank);
+                for (const entry of entries) {
+                    if (!trails[entry.area]) trails[entry.area] = [];
 
-                        // If this is the last point and we're transitioning, interpolate Y
-                        if (i === currentYearIdx && animState.transitioning) {
-                            const fromRank = animState.fromPositions[country];
-                            const toRank = animState.toPositions[country];
-                            if (fromRank !== undefined && toRank !== undefined) {
-                                const fromY = rankToY(fromRank);
-                                const toY = rankToY(toRank);
-                                y = fromY + (toY - fromY) * t;
-                            }
+                    // For the current year during transition, use interpolated position
+                    if (i === currentYearIdx && animState.transitioning) {
+                        const from = animState.fromPositions[entry.area];
+                        const to = animState.toPositions[entry.area];
+                        if (from !== undefined && to !== undefined) {
+                            const fromY = rankToY(from.rank);
+                            const toY = rankToY(to.rank);
+                            trails[entry.area].push({ x: currentX, y: fromY + (toY - fromY) * t });
+                        } else if (to !== undefined) {
+                            trails[entry.area].push({ x: currentX, y: rankToY(to.rank) });
                         }
-
-                        points.push({
-                            x: yearToX(i, currentYearIdx, visibleYears),
-                            y: y,
-                            entry: entry
-                        });
+                    } else {
+                        trails[entry.area].push({ x, y: rankToY(entry.rank) });
                     }
                 }
+            }
 
-                if (points.length === 0) continue;
+            // Draw trail lines for all countries
+            for (const country of Object.keys(trails)) {
+                const points = trails[country];
+                if (points.length < 2) continue;
 
-                // Draw trail line
+                const color = getCountryColor(country);
                 ctx.strokeStyle = color;
                 ctx.lineWidth = 3;
                 ctx.lineJoin = 'round';
                 ctx.lineCap = 'round';
-                ctx.globalAlpha = 0.6;
+                ctx.globalAlpha = 0.5;
                 ctx.beginPath();
                 ctx.moveTo(points[0].x, points[0].y);
                 for (let p = 1; p < points.length; p++) {
@@ -721,67 +722,75 @@
                 }
                 ctx.stroke();
                 ctx.globalAlpha = 1.0;
-
-                // Draw circle at the latest point (right edge)
-                const lastPoint = points[points.length - 1];
-                const iso2 = lastPoint.entry.iso2 ? lastPoint.entry.iso2.toLowerCase() : null;
-                const flagImg = iso2 ? flagCache[iso2] : null;
-
-                // Circle background
-                ctx.beginPath();
-                ctx.arc(lastPoint.x, lastPoint.y, CIRCLE_RADIUS, 0, Math.PI * 2);
-                ctx.fillStyle = color;
-                ctx.fill();
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 3;
-                ctx.stroke();
-
-                // Flag or text inside circle
-                if (flagImg) {
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.arc(lastPoint.x, lastPoint.y, CIRCLE_RADIUS - 3, 0, Math.PI * 2);
-                    ctx.clip();
-                    const imgSize = (CIRCLE_RADIUS - 3) * 2;
-                    ctx.drawImage(flagImg, lastPoint.x - imgSize / 2, lastPoint.y - imgSize / 2, imgSize, imgSize);
-                    ctx.restore();
-                } else {
-                    // Draw country name text inside circle
-                    ctx.fillStyle = '#fff';
-                    ctx.font = 'bold 11px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    // Split long names
-                    const words = country.split(' ');
-                    if (words.length <= 2 && country.length <= 12) {
-                        ctx.fillText(country, lastPoint.x, lastPoint.y);
-                    } else {
-                        const abbrev = country.substring(0, 10) + (country.length > 10 ? '.' : '');
-                        ctx.fillText(abbrev, lastPoint.x, lastPoint.y);
-                    }
-                    ctx.textBaseline = 'alphabetic';
-                }
-
-                // Draw value next to circle
-                ctx.fillStyle = '#fff';
-                ctx.font = '13px Arial';
-                ctx.textAlign = 'left';
-                ctx.fillText(
-                    lastPoint.entry.value.toLocaleString(),
-                    lastPoint.x + CIRCLE_RADIUS + 8,
-                    lastPoint.y + 5
-                );
             }
+
+            // Draw exiting countries (fading out, falling down)
+            if (animState.transitioning) {
+                for (const [country, info] of Object.entries(animState.exitingCountries)) {
+                    const color = getCountryColor(country);
+                    const fadeAlpha = Math.max(0, 1 - t);
+                    const exitY = rankToY(info.fromRank) + t * 60; // fall downward
+                    drawCountryCircle(ctx, currentX, exitY, country, info.iso2, color, fadeAlpha);
+                }
+            }
+
+            // Draw circles for current top 10 at the race front
+            const currentEntries = rankByYear[displayYear];
+            if (currentEntries) {
+                for (const entry of currentEntries) {
+                    const color = getCountryColor(entry.area);
+                    let y;
+
+                    if (animState.transitioning) {
+                        const from = animState.fromPositions[entry.area];
+                        const to = animState.toPositions[entry.area];
+                        if (from !== undefined && to !== undefined) {
+                            y = rankToY(from.rank) + (rankToY(to.rank) - rankToY(from.rank)) * t;
+                        } else if (to !== undefined) {
+                            // New entry — fade in
+                            y = rankToY(to.rank);
+                            drawCountryCircle(ctx, currentX, y, entry.area, entry.iso2, color, t);
+                            // Value label
+                            ctx.globalAlpha = t;
+                            ctx.fillStyle = '#fff';
+                            ctx.font = 'bold 14px Arial';
+                            ctx.textAlign = 'left';
+                            ctx.fillText(entry.value.toLocaleString(), currentX + CIRCLE_RADIUS + 8, y + 5);
+                            ctx.globalAlpha = 1.0;
+                            continue;
+                        } else {
+                            y = rankToY(entry.rank);
+                        }
+                    } else {
+                        y = rankToY(entry.rank);
+                    }
+
+                    drawCountryCircle(ctx, currentX, y, entry.area, entry.iso2, color, 1.0);
+
+                    // Value label
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 14px Arial';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(entry.value.toLocaleString(), currentX + CIRCLE_RADIUS + 8, y + 5);
+                }
+            }
+
+            // Year label at bottom under current position
+            ctx.fillStyle = 'rgba(255,255,255,0.6)';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(displayYear, currentX, canvas.height - MARGIN.bottom + 30);
         }
 
-        // Draw static frame for a given year index (no transition)
+        // Draw static frame for a given year index
         function drawChart(yearIndex) {
             animState.yearIndex = yearIndex;
             animState.transitioning = false;
+            animState.exitingCountries = {};
             drawRaceFrame(1);
         }
 
-        // Smooth animation loop using requestAnimationFrame
+        // Smooth animation loop
         function animationTick(timestamp) {
             if (!appState.isPlaying) return;
 
@@ -793,7 +802,6 @@
                 drawRaceFrame(t);
 
                 if (rawT >= 1) {
-                    // Transition complete — move to next year
                     animState.transitioning = false;
                     animState.yearIndex++;
 
@@ -813,8 +821,6 @@
                     appState.currentYear = appState.allYears[animState.yearIndex];
                     updateProgressInfo();
                     updateProgressBar();
-
-                    // Start next transition
                     startTransition(timestamp);
                 }
 
@@ -830,25 +836,35 @@
             const currYearIdx = animState.yearIndex;
             const prevYear = appState.allYears[prevYearIdx];
             const currYear = appState.allYears[currYearIdx];
-            const data = appState.data.data;
 
-            // Compute from/to positions
+            const prevEntries = rankByYear[prevYear] || [];
+            const currEntries = rankByYear[currYear] || [];
+
             animState.fromPositions = {};
             animState.toPositions = {};
+            animState.exitingCountries = {};
 
-            if (data[prevYear]) {
-                const sorted = [...data[prevYear]].sort((a, b) => b.value - a.value).slice(0, 10);
-                sorted.forEach((item, idx) => { animState.fromPositions[item.area] = idx; });
-            }
-            if (data[currYear]) {
-                const sorted = [...data[currYear]].sort((a, b) => b.value - a.value).slice(0, 10);
-                sorted.forEach((item, idx) => { animState.toPositions[item.area] = idx; });
+            // Map previous positions
+            for (const entry of prevEntries) {
+                animState.fromPositions[entry.area] = { rank: entry.rank, value: entry.value, iso2: entry.iso2 };
             }
 
-            // Countries new to top 10 start from their target position
-            for (const c of Object.keys(animState.toPositions)) {
-                if (animState.fromPositions[c] === undefined) {
-                    animState.fromPositions[c] = animState.toPositions[c];
+            // Map target positions
+            for (const entry of currEntries) {
+                animState.toPositions[entry.area] = { rank: entry.rank, value: entry.value, iso2: entry.iso2 };
+            }
+
+            // Countries entering: new to top 10, start from target rank
+            for (const entry of currEntries) {
+                if (!animState.fromPositions[entry.area]) {
+                    animState.fromPositions[entry.area] = { rank: entry.rank, value: entry.value, iso2: entry.iso2 };
+                }
+            }
+
+            // Countries exiting: were in top 10 but aren't anymore
+            for (const entry of prevEntries) {
+                if (!animState.toPositions[entry.area]) {
+                    animState.exitingCountries[entry.area] = { fromRank: entry.rank, iso2: entry.iso2 };
                 }
             }
 
