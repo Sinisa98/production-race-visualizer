@@ -931,58 +931,83 @@
             updateProgressBar();
         }
 
-        // Export video — capture each year as a frame
+        // Export video — record canvas directly in the browser
         async function exportVideo() {
             if (appState.isExporting) return;
 
             appState.isExporting = true;
             exportBtn.disabled = true;
-            exportBtn.textContent = '⏳ Exporting...';
+            playBtn.disabled = true;
+            stopBtn.disabled = true;
+            resetBtn.disabled = true;
+            exportBtn.textContent = '⏳ Recording...';
 
             try {
-                console.log('Capturing frames...');
-                const frames = [];
+                // Set up MediaRecorder on the canvas
+                const stream = canvas.captureStream(60);
+                const chunks = [];
+                const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+                    ? 'video/webm;codecs=vp9'
+                    : 'video/webm';
+                const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 8000000 });
 
-                for (let i = 0; i < appState.allYears.length; i++) {
-                    drawChart(i);
-                    frames.push(canvas.toDataURL('image/png'));
-                    console.log(`Captured frame for year ${appState.allYears[i]}`);
-                }
+                recorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) chunks.push(e.data);
+                };
 
-                console.log(`Sending ${frames.length} frames to backend...`);
-
-                const response = await fetch(`${API_URL}/api/encode-video`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        frames,
-                        fps: 30,
-                        product: appState.selectedProduct,
-                        startYear: appState.startYear
-                    })
+                const recordingDone = new Promise((resolve) => {
+                    recorder.onstop = () => resolve();
                 });
 
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Video encoding failed');
-                }
+                recorder.start();
 
-                const result = await response.json();
+                // Play the full animation while recording
+                const totalYears = appState.allYears.length;
+                const totalDuration = (totalYears - 1) * YEAR_DURATION_MS;
+                const exportStartTime = performance.now();
 
-                if (!result.success) {
-                    throw new Error(result.error || 'Video encoding failed');
-                }
+                await new Promise((resolve) => {
+                    function exportTick(timestamp) {
+                        const elapsed = timestamp - exportStartTime;
+                        const progress = Math.min(elapsed / YEAR_DURATION_MS, totalYears - 1);
 
-                console.log('Video encoded, downloading...');
+                        drawRaceFrame(progress);
 
+                        // Update progress display
+                        const pct = Math.round((progress / (totalYears - 1)) * 100);
+                        exportBtn.textContent = `⏳ Recording ${pct}%`;
+
+                        if (progress >= totalYears - 1) {
+                            resolve();
+                            return;
+                        }
+                        requestAnimationFrame(exportTick);
+                    }
+                    requestAnimationFrame(exportTick);
+                });
+
+                // Hold on the last frame briefly
+                await new Promise(r => setTimeout(r, 500));
+
+                recorder.stop();
+                await recordingDone;
+
+                // Download the video
+                const blob = new Blob(chunks, { type: mimeType });
+                const url = URL.createObjectURL(blob);
                 const downloadLink = document.createElement('a');
-                downloadLink.href = `${API_URL}${result.downloadUrl}`;
-                downloadLink.download = `${appState.selectedProduct.replace(/\s+/g, '_')}_${appState.startYear}.mp4`;
+                downloadLink.href = url;
+                downloadLink.download = `${appState.selectedProduct.replace(/\s+/g, '_')}_${appState.startYear}.webm`;
                 document.body.appendChild(downloadLink);
                 downloadLink.click();
                 document.body.removeChild(downloadLink);
+                URL.revokeObjectURL(url);
 
-                alert('✅ Video exported successfully!');
+                // Reset to last frame
+                animState.pausedProgress = totalYears - 1;
+                appState.currentYear = appState.allYears[totalYears - 1];
+                updateProgressInfo();
+                updateProgressBar();
             } catch (error) {
                 console.error('Export failed:', error);
                 showError('Export failed: ' + error.message);
@@ -990,6 +1015,8 @@
                 appState.isExporting = false;
                 exportBtn.disabled = false;
                 exportBtn.textContent = '💾 Export Video';
+                playBtn.disabled = false;
+                resetBtn.disabled = false;
             }
         }
 
