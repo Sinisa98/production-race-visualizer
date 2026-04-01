@@ -22,49 +22,77 @@ export async function processData(jsonPath) {
       console.log(`Loading data from: ${jsonPath}`);
       
       const rawData = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-      
-      console.log(`Parsed JSON, processing ${Object.keys(rawData).length} entries...`);
-      
+
       const products = new Set();
       const yearsByProduct = {};
       const dataByProductYear = {};
-      
-      // Process each entry
-      for (const [id, entry] of Object.entries(rawData)) {
-        if (!entry || typeof entry !== 'object') continue;
-        
-        // Handle different field names
-        const product = entry.product || entry.Item || entry.item || entry.name;
-        const year = entry.year || entry.Year || entry.y;
-        const area = entry.area || entry.Area || entry.country || entry.region;
-        let value = entry.value || entry.Value || entry.v || entry.production;
-        
-        if (!product || !year || !area || value === null || value === undefined) continue;
-        
-        value = parseFloat(value);
-        if (isNaN(value)) continue;
-        
-        products.add(product);
-        
-        // Initialize structures
-        if (!yearsByProduct[product]) {
-          yearsByProduct[product] = new Set();
+
+      // Detect format: columnar (pandas-style) vs row-based
+      const topKeys = Object.keys(rawData);
+      const isColumnar = topKeys.some(k =>
+        ['Area', 'Item', 'Year', 'Value'].includes(k)
+      ) && typeof rawData[topKeys[0]] === 'object' && !Array.isArray(rawData[topKeys[0]]);
+
+      if (isColumnar) {
+        // Columnar format: { "Area": {"1": "...", "2": "..."}, "Item": {...}, ... }
+        const areaCol = rawData.Area || rawData.area || {};
+        const itemCol = rawData.Item || rawData.item || rawData.product || {};
+        const yearCol = rawData.Year || rawData.year || {};
+        const valueCol = rawData.Value || rawData.value || {};
+
+        const ids = Object.keys(areaCol);
+        console.log(`Parsed columnar JSON, processing ${ids.length} entries...`);
+
+        for (const id of ids) {
+          const product = itemCol[id];
+          const year = yearCol[id];
+          const area = areaCol[id];
+          let value = valueCol[id];
+
+          if (!product || !year || !area || value === null || value === undefined) continue;
+
+          value = parseFloat(value);
+          if (isNaN(value)) continue;
+
+          products.add(product);
+
+          if (!yearsByProduct[product]) yearsByProduct[product] = new Set();
+          if (!dataByProductYear[product]) dataByProductYear[product] = {};
+
+          yearsByProduct[product].add(year);
+
+          if (!dataByProductYear[product][year]) dataByProductYear[product][year] = [];
+
+          dataByProductYear[product][year].push({ area, value });
         }
-        if (!dataByProductYear[product]) {
-          dataByProductYear[product] = {};
+      } else {
+        // Row-based format: { "1": { product: "...", year: ..., area: "...", value: ... } }
+        console.log(`Parsed JSON, processing ${Object.keys(rawData).length} entries...`);
+
+        for (const [id, entry] of Object.entries(rawData)) {
+          if (!entry || typeof entry !== 'object') continue;
+
+          const product = entry.product || entry.Item || entry.item || entry.name;
+          const year = entry.year || entry.Year || entry.y;
+          const area = entry.area || entry.Area || entry.country || entry.region;
+          let value = entry.value || entry.Value || entry.v || entry.production;
+
+          if (!product || !year || !area || value === null || value === undefined) continue;
+
+          value = parseFloat(value);
+          if (isNaN(value)) continue;
+
+          products.add(product);
+
+          if (!yearsByProduct[product]) yearsByProduct[product] = new Set();
+          if (!dataByProductYear[product]) dataByProductYear[product] = {};
+
+          yearsByProduct[product].add(year);
+
+          if (!dataByProductYear[product][year]) dataByProductYear[product][year] = [];
+
+          dataByProductYear[product][year].push({ area, value });
         }
-        
-        yearsByProduct[product].add(year);
-        
-        // Store data point
-        if (!dataByProductYear[product][year]) {
-          dataByProductYear[product][year] = [];
-        }
-        
-        dataByProductYear[product][year].push({
-          area,
-          value
-        });
       }
       
       console.log('Organizing data...');
