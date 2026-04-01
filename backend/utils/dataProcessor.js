@@ -39,6 +39,7 @@ export async function processData(jsonPath) {
         const itemCol = rawData.Item || rawData.item || rawData.product || {};
         const yearCol = rawData.Year || rawData.year || {};
         const valueCol = rawData.Value || rawData.value || {};
+        const iso2Col = rawData.iso2 || rawData.ISO2 || rawData.Iso2 || {};
 
         const ids = Object.keys(areaCol);
         console.log(`Parsed columnar JSON, processing ${ids.length} entries...`);
@@ -48,6 +49,7 @@ export async function processData(jsonPath) {
           const year = yearCol[id];
           const area = areaCol[id];
           let value = valueCol[id];
+          const iso2 = iso2Col[id] || null;
 
           if (!product || !year || !area || value === null || value === undefined) continue;
 
@@ -63,7 +65,7 @@ export async function processData(jsonPath) {
 
           if (!dataByProductYear[product][year]) dataByProductYear[product][year] = [];
 
-          dataByProductYear[product][year].push({ area, value });
+          dataByProductYear[product][year].push({ area, value, iso2 });
         }
       } else {
         // Row-based format: { "1": { product: "...", year: ..., area: "...", value: ... } }
