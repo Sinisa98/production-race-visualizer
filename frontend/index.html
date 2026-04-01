@@ -163,6 +163,17 @@
             transform: translateY(-2px);
         }
 
+        .btn-stop {
+            background-color: #d9534f;
+            color: white;
+        }
+
+        .btn-stop:hover:not(:disabled) {
+            background-color: #c9302c;
+            box-shadow: 0 4px 12px rgba(217, 83, 79, 0.4);
+            transform: translateY(-2px);
+        }
+
         .btn-reset {
             background-color: #f0ad4e;
             color: white;
@@ -297,6 +308,7 @@
         <div id="chart-container" class="chart-box hidden">
             <div class="controls">
                 <button id="play-btn" class="btn-play">▶ Play</button>
+                <button id="stop-btn" class="btn-stop" disabled>⏸ Stop</button>
                 <button id="reset-btn" class="btn-reset">⏹ Reset</button>
                 <button id="export-btn" class="btn-export">💾 Export Video</button>
                 <div class="progress-info" id="progress-info">Year 0 / 0</div>
@@ -339,10 +351,106 @@
         const infoBox = document.getElementById('info-box');
         const canvas = document.getElementById('racing-canvas');
         const playBtn = document.getElementById('play-btn');
+        const stopBtn = document.getElementById('stop-btn');
         const resetBtn = document.getElementById('reset-btn');
         const exportBtn = document.getElementById('export-btn');
         const progressInfo = document.getElementById('progress-info');
         const progressBar = document.getElementById('progress-bar');
+
+        // Country name to ISO 3166-1 alpha-2 code mapping
+        const countryToCode = {
+            'Afghanistan': 'AF', 'Albania': 'AL', 'Algeria': 'DZ', 'Angola': 'AO',
+            'Argentina': 'AR', 'Armenia': 'AM', 'Australia': 'AU', 'Austria': 'AT',
+            'Azerbaijan': 'AZ', 'Bahamas': 'BS', 'Bangladesh': 'BD', 'Belarus': 'BY',
+            'Belgium': 'BE', 'Belize': 'BZ', 'Benin': 'BJ', 'Bhutan': 'BT',
+            'Bolivia (Plurinational State of)': 'BO', 'Bolivia': 'BO',
+            'Bosnia and Herzegovina': 'BA', 'Botswana': 'BW', 'Brazil': 'BR',
+            'Brunei Darussalam': 'BN', 'Bulgaria': 'BG', 'Burkina Faso': 'BF',
+            'Burundi': 'BI', 'Cabo Verde': 'CV', 'Cambodia': 'KH', 'Cameroon': 'CM',
+            'Canada': 'CA', 'Central African Republic': 'CF', 'Chad': 'TD',
+            'Chile': 'CL', 'China': 'CN', 'China, Hong Kong SAR': 'HK',
+            'China, Macao SAR': 'MO', 'China, Taiwan Province of': 'TW',
+            'China, mainland': 'CN', 'Colombia': 'CO', 'Comoros': 'KM',
+            'Congo': 'CG', 'Cook Islands': 'CK', 'Costa Rica': 'CR',
+            "Côte d'Ivoire": 'CI', 'Croatia': 'HR', 'Cuba': 'CU', 'Cyprus': 'CY',
+            'Czechia': 'CZ', 'Czech Republic': 'CZ',
+            "Democratic People's Republic of Korea": 'KP',
+            'Democratic Republic of the Congo': 'CD',
+            'Denmark': 'DK', 'Djibouti': 'DJ', 'Dominican Republic': 'DO',
+            'Ecuador': 'EC', 'Egypt': 'EG', 'El Salvador': 'SV',
+            'Equatorial Guinea': 'GQ', 'Eritrea': 'ER', 'Estonia': 'EE',
+            'Eswatini': 'SZ', 'Ethiopia': 'ET', 'Fiji': 'FJ', 'Finland': 'FI',
+            'France': 'FR', 'French Guiana': 'GF', 'French Polynesia': 'PF',
+            'Gabon': 'GA', 'Gambia': 'GM', 'Georgia': 'GE', 'Germany': 'DE',
+            'Ghana': 'GH', 'Greece': 'GR', 'Grenada': 'GD', 'Guadeloupe': 'GP',
+            'Guatemala': 'GT', 'Guinea': 'GN', 'Guinea-Bissau': 'GW',
+            'Guyana': 'GY', 'Haiti': 'HT', 'Honduras': 'HN', 'Hungary': 'HU',
+            'Iceland': 'IS', 'India': 'IN', 'Indonesia': 'ID',
+            'Iran (Islamic Republic of)': 'IR', 'Iran': 'IR',
+            'Iraq': 'IQ', 'Ireland': 'IE', 'Israel': 'IL', 'Italy': 'IT',
+            'Jamaica': 'JM', 'Japan': 'JP', 'Jordan': 'JO', 'Kazakhstan': 'KZ',
+            'Kenya': 'KE', 'Kiribati': 'KI', 'Kuwait': 'KW', 'Kyrgyzstan': 'KG',
+            "Lao People's Democratic Republic": 'LA', 'Latvia': 'LV',
+            'Lebanon': 'LB', 'Lesotho': 'LS', 'Liberia': 'LR', 'Libya': 'LY',
+            'Lithuania': 'LT', 'Luxembourg': 'LU', 'Madagascar': 'MG',
+            'Malawi': 'MW', 'Malaysia': 'MY', 'Maldives': 'MV', 'Mali': 'ML',
+            'Malta': 'MT', 'Martinique': 'MQ', 'Mauritania': 'MR',
+            'Mauritius': 'MU', 'Mexico': 'MX', 'Mongolia': 'MN',
+            'Montenegro': 'ME', 'Morocco': 'MA', 'Mozambique': 'MZ',
+            'Myanmar': 'MM', 'Namibia': 'NA', 'Nepal': 'NP',
+            'Netherlands': 'NL', 'Netherlands (Kingdom of the)': 'NL',
+            'New Caledonia': 'NC', 'New Zealand': 'NZ',
+            'Nicaragua': 'NI', 'Niger': 'NE', 'Nigeria': 'NG',
+            'North Macedonia': 'MK', 'Norway': 'NO', 'Oman': 'OM',
+            'Pakistan': 'PK', 'Palestine': 'PS', 'Panama': 'PA',
+            'Papua New Guinea': 'PG', 'Paraguay': 'PY', 'Peru': 'PE',
+            'Philippines': 'PH', 'Poland': 'PL', 'Portugal': 'PT',
+            'Puerto Rico': 'PR', 'Qatar': 'QA',
+            'Republic of Korea': 'KR', 'South Korea': 'KR',
+            'Republic of Moldova': 'MD', 'Moldova': 'MD',
+            'Romania': 'RO', 'Russian Federation': 'RU', 'Russia': 'RU',
+            'Rwanda': 'RW', 'Samoa': 'WS', 'Sao Tome and Principe': 'ST',
+            'Saudi Arabia': 'SA', 'Senegal': 'SN', 'Serbia': 'RS',
+            'Sierra Leone': 'SL', 'Singapore': 'SG', 'Slovakia': 'SK',
+            'Slovenia': 'SI', 'Solomon Islands': 'SB', 'Somalia': 'SO',
+            'South Africa': 'ZA', 'South Sudan': 'SS', 'Spain': 'ES',
+            'Sri Lanka': 'LK', 'Sudan': 'SD', 'Suriname': 'SR',
+            'Sweden': 'SE', 'Switzerland': 'CH',
+            'Syrian Arab Republic': 'SY', 'Syria': 'SY',
+            'Tajikistan': 'TJ', 'Thailand': 'TH', 'Timor-Leste': 'TL',
+            'Togo': 'TG', 'Tonga': 'TO', 'Trinidad and Tobago': 'TT',
+            'Tunisia': 'TN', 'Turkey': 'TR', 'Türkiye': 'TR',
+            'Turkmenistan': 'TM', 'Uganda': 'UG', 'Ukraine': 'UA',
+            'United Arab Emirates': 'AE', 'United Kingdom': 'GB',
+            'United Kingdom of Great Britain and Northern Ireland': 'GB',
+            'United Republic of Tanzania': 'TZ', 'Tanzania': 'TZ',
+            'United States of America': 'US', 'United States': 'US', 'USA': 'US',
+            'Uruguay': 'UY', 'Uzbekistan': 'UZ',
+            'Vanuatu': 'VU', 'Venezuela (Bolivarian Republic of)': 'VE',
+            'Venezuela': 'VE', 'Viet Nam': 'VN', 'Vietnam': 'VN',
+            'Yemen': 'YE', 'Zambia': 'ZM', 'Zimbabwe': 'ZW',
+            'Serbia and Montenegro': 'RS', 'USSR': 'RU',
+            'Yugoslav SFR': 'RS', 'Czechoslovakia': 'CZ',
+            'Ethiopia PDR': 'ET', 'Sudan (former)': 'SD',
+            'Belgian Congo': 'CD', 'Réunion': 'RE',
+            'Micronesia (Federated States of)': 'FM',
+            'Occupied Palestinian Territory': 'PS',
+        };
+
+        // Convert ISO code to flag emoji
+        function countryCodeToFlag(code) {
+            if (!code || code.length !== 2) return null;
+            return String.fromCodePoint(
+                ...[...code.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65)
+            );
+        }
+
+        // Get flag for a country name, returns { flag, name }
+        function getCountryFlag(countryName) {
+            const code = countryToCode[countryName];
+            const flag = code ? countryCodeToFlag(code) : null;
+            return { flag, name: countryName };
+        }
 
         // Initialize canvas size
         function initCanvas() {
@@ -511,11 +619,20 @@
                 ctx.fillStyle = colors[index % colors.length];
                 ctx.fillRect(margin.left, y + 5, barWidth, barHeight - 10);
 
-                // Draw country name
-                ctx.fillStyle = '#000';
-                ctx.font = 'bold 16px Arial';
+                // Draw flag + country name
+                const { flag, name } = getCountryFlag(item.area);
                 ctx.textAlign = 'right';
-                ctx.fillText(item.area, margin.left - 10, y + barHeight / 2 + 6);
+                if (flag) {
+                    ctx.font = '28px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+                    ctx.fillText(flag, margin.left - 10, y + barHeight / 2 + 8);
+                    ctx.fillStyle = '#000';
+                    ctx.font = 'bold 14px Arial';
+                    ctx.fillText(name, margin.left - 45, y + barHeight / 2 + 6);
+                } else {
+                    ctx.fillStyle = '#000';
+                    ctx.font = 'bold 16px Arial';
+                    ctx.fillText(name, margin.left - 10, y + barHeight / 2 + 6);
+                }
 
                 // Draw value
                 ctx.font = '14px Arial';
@@ -566,28 +683,49 @@
             progressBar.style.width = percentage + '%';
         }
 
+        let playInterval = null;
+
         // Play animation
         function play() {
             if (appState.isPlaying) return;
+            if (appState.currentYear >= appState.endYear) {
+                appState.currentYear = appState.startYear;
+            }
             appState.isPlaying = true;
             playBtn.disabled = true;
+            stopBtn.disabled = false;
             resetBtn.disabled = true;
             exportBtn.disabled = true;
 
-            const interval = setInterval(() => {
+            playInterval = setInterval(() => {
                 animate();
                 if (!appState.isPlaying) {
-                    clearInterval(interval);
+                    clearInterval(playInterval);
+                    playInterval = null;
                     playBtn.disabled = false;
+                    stopBtn.disabled = true;
                     resetBtn.disabled = false;
                     exportBtn.disabled = false;
                 }
-            }, 500); // 0.5 seconds per year
+            }, 500);
+        }
+
+        // Stop animation
+        function stop() {
+            appState.isPlaying = false;
+            if (playInterval) {
+                clearInterval(playInterval);
+                playInterval = null;
+            }
+            playBtn.disabled = false;
+            stopBtn.disabled = true;
+            resetBtn.disabled = false;
+            exportBtn.disabled = false;
         }
 
         // Reset animation
         function reset() {
-            appState.isPlaying = false;
+            stop();
             appState.currentYear = appState.startYear;
             drawChart(appState.currentYear);
             updateProgressInfo();
@@ -680,6 +818,7 @@
         });
 
         playBtn.addEventListener('click', play);
+        stopBtn.addEventListener('click', stop);
         resetBtn.addEventListener('click', reset);
         exportBtn.addEventListener('click', exportVideo);
 
