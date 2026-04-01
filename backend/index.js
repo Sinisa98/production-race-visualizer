@@ -27,7 +27,7 @@ let dataCacheTimestamp = null;
 // Helper: Get or load data
 async function getData() {
   // JSON file location - points to your existing data.json
-  const jsonPath = path.join(__dirname, '..', '..', 'Years', 'data.json');
+  const jsonPath = path.join(__dirname, 'data.json');
   
   // Return cached data if available
   if (dataCache) {
